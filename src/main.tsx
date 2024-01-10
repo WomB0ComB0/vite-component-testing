@@ -8,7 +8,7 @@ import './index.css'
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <CmdKConfigurer
-      token={import.meta.env.VITE_CMDK_TOKEN}
+      token={import.meta.env.VITE_CMDK_TOKEN as string}
     >
       <NextUIProvider>
         <App />
