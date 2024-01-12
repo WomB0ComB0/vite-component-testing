@@ -1,18 +1,26 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { NextUIProvider } from '@nextui-org/react'
-import { CmdKConfigurer } from "@cmdk/react-ui-toolkit"
-import App from './App.jsx'
+// import { CmdKConfigurer } from "@cmdk/react-ui-toolkit"
+import App from "./App";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import './index.css'
+import { Toaster } from './components/ui/toaster.js';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <CmdKConfigurer
-      token={import.meta.env.VITE_CMDK_TOKEN as string}
-    >
-      <NextUIProvider>
-        <App />
-      </NextUIProvider>
-    </CmdKConfigurer>
+    <NextUIProvider>
+
+    <Toaster />
+    <Router>
+      <Routes>
+        <Route path="/" element={<App />} />
+        <Route path="*" element={<>
+          <h1>404</h1>
+          <p>Page not found</p>
+        </>} />
+      </Routes>
+    </Router>
+    </NextUIProvider>
   </React.StrictMode>,
 )
