@@ -13,13 +13,21 @@ import {
   Navbar,
   NavbarBrand,
   NavbarContent,
-  NavbarItem, Button,
+  NavbarItem,
   NavbarMenuToggle,
   NavbarMenu,
   NavbarMenuItem
 } from "@nextui-org/react";
 import { SearchBar } from "./components/HardCoded";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import TicTacToe from './components/tic-tac-toe/TicTacToe';
+import React from 'react';
+
+import { Card, CardContent } from './components/ui/card';
+import { ParticlesContainer } from './components/particles/ParticlesContainer';
+
+import { Button } from './components/ui/button';
+
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean | undefined>(false);
 
@@ -35,15 +43,37 @@ export default function App() {
     "Help & Feedback",
     "Log Out",
   ];
+  const [appear, setAppear] = useState<boolean>(false);
   
   return (
     <>
 
       <main className={`flex flex-col items-center justify-center h-screen w-full`}>
-        <Nav />
+        {/* <Nav /> */}
+        <TicTacToe />
+        {/* <Card
+          className={`
+            grid grid-cols-3 grid-rows-3
+            gap-2 rounded-lg h-fit w-fit p-2
+          `}
+        >
+          {[0, 1, 2].map((row) => (
+            <React.Fragment key={row}>
+              {[0, 1, 2].map((col) => (
+                <CardContent
+                  key={col}
+                  className={`
+                bg-[#dedede] rounded-md
+                flex flex-col justify-center items-center size-28 
+                `}
+                />
+              ))}
+            </React.Fragment>
+          ))}
+        </Card> */}
       </main>
     </>
-  );  
+  );
   function Nav() {
     return (<Navbar onMenuOpenChange={setIsMenuOpen} className={`top-0 w-screen absolute flex flex-row justify-around items-center`}>
       <NavbarContent className="sm:hidden" justify="start">
@@ -99,7 +129,7 @@ export default function App() {
               color={index === 2 ? "primary" : index === menuItems.length - 1 ? "danger" : "foreground"}
               href="#"
               size="lg"
-              >
+            >
               {item}
             </Link>
           </NavbarMenuItem>
@@ -109,15 +139,15 @@ export default function App() {
   }
 }
 
-const AcmeLogo  = (): JSX.Element => {
+const AcmeLogo = (): JSX.Element => {
   return (
-  <svg fill="none" height="36" viewBox="0 0 32 32" width="36">
-    <path
-      clipRule="evenodd"
-      d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
-      fill="currentColor"
-      fillRule="evenodd"
-    />
-  </svg>
+    <svg fill="none" height="36" viewBox="0 0 32 32" width="36">
+      <path
+        clipRule="evenodd"
+        d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
+        fill="currentColor"
+        fillRule="evenodd"
+      />
+    </svg>
   )
 };
