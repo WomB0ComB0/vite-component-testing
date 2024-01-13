@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import './styles/globals.scss'
 import './styles/cmdk/vercel.scss'
 
@@ -114,7 +115,7 @@ export default function App() {
           <Link href="#">Login</Link>
         </NavbarItem>
         <NavbarItem>
-          <Button as={Link} color="warning" href="#" variant="flat">
+          <Button color="warning" variant={`default`}>
             <SearchBar />
           </Button>
         </NavbarItem>
