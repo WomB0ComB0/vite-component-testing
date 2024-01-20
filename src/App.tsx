@@ -28,6 +28,8 @@ import { Card, CardContent } from './components/ui/card';
 import { ParticlesContainer } from './components/particles/ParticlesContainer';
 
 import { Button } from './components/ui/button';
+import { CommandMenu } from './components/cmdk/RealCommand';
+import TypeSafeApi from './components/typeSafeApi';
 
 export default function App() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean | undefined>(false);
@@ -51,7 +53,9 @@ export default function App() {
 
       <main className={`flex flex-col items-center justify-center h-screen w-full`}>
         {/* <Nav /> */}
-        <TicTacToe />
+        {/* <CommandMenu /> */}
+        {/* <TicTacToe /> */}
+        {/* <TypeSafeApi /> */}
         {/* <Card
           className={`
             grid grid-cols-3 grid-rows-3

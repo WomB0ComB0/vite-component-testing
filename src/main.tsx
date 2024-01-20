@@ -6,6 +6,10 @@ import App from "./App";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import './index.css'
 import { Toaster } from './components/ui/toaster';
+import NotFound from './components/dom/404';
+import TypeSafeApi from './components/typeSafeApi';
+import UserListComponent from './UserListComponent';
+import GDSCApiComponent from './GDSCApiComponent';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -16,11 +20,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <Toaster />
         <Router>
           <Routes>
-            <Route path="/" element={<App />} />
-            <Route path="*" element={<>
-              <h1>404</h1>
-              <p>Page not found</p>
-            </>} />
+            <Route path="/" element={<GDSCApiComponent />}/>
+            <Route path="*" element={<NotFound />}/>
           </Routes>
         </Router>
       </NextUIProvider>

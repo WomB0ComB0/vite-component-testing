@@ -7,11 +7,13 @@ import {
   FieldPath,
   FieldValues,
   FormProvider,
+  UseControllerProps,
   useFormContext,
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
+import { Input } from "./input"
 
 const Form = FormProvider
 
@@ -163,6 +165,40 @@ const FormMessage = React.forwardRef<
   )
 })
 FormMessage.displayName = "FormMessage"
+
+export const InputField = <
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
+>({
+  label,
+  placeholder,
+  description,
+  disabled,
+  ...props
+}: UseControllerProps<TFieldValues, TName> & {
+  label: string;
+  placeholder: string;
+  description: string;
+}) => {
+  return (
+    <FormField
+      control={props.control}
+      name={props.name}
+      render={({ field }) => {
+        return (
+          <FormItem className="flex flex-col">
+            <FormLabel>{label}</FormLabel>
+            <FormControl>
+              <Input placeholder={placeholder} {...field} disabled={disabled} />
+            </FormControl>
+            <FormDescription>{description}</FormDescription>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+};
 
 export {
   useFormField,

@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { ParticlesContainer } from "../particles/ParticlesContainer";
+import { Provider, atom, useAtom, useSetAtom } from 'jotai'
 
 const arr = new Array(DIMENSIONS ** 2).fill(null);
 const board = new Board();
@@ -279,7 +280,6 @@ const TicTacToe = ({ squares = arr }: Props) => {
         <Container
           className={`grid grid-cols-3 grid-rows-3
         gap-2 rounded-lg h-fit w-fit p-2 shadow-lg`}
-          dims={DIMENSIONS}
         >
           {grid.map((value, index) => {
             const isActive = value !== null;
@@ -311,7 +311,7 @@ const TicTacToe = ({ squares = arr }: Props) => {
   );
 };
 
-const Container = styled.article<{ dims: number }>`
+const Container = styled.article`
 background-color: white;
 `;
 
