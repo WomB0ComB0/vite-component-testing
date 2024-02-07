@@ -53,6 +53,7 @@
     "jotai": "^2.6.2",
     "jotai-effect": "^0.2.3",
     "next-themes": "^0.2.1",
+    "node-nlp": "^4.27.0",
     "open-graph-scraper": "^6.3.2",
     "path": "^0.12.7",
     "react": "^18.2.0",
