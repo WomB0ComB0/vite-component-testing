@@ -28,7 +28,8 @@ const SentimentAnalysis = () => {
         value={text}
         onChange={(e) => setText(e.target.value)}
         />
-      <button onClick={() => sentiment.getSentiment(text).then((result) => console.log(result))}>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      <button onClick={() => sentiment.getSentiment(text).then((result: any) => console.log(result))}>
         Analyze
       </button>
     </form>
