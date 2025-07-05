@@ -4,7 +4,7 @@ import { NextUIProvider } from '@nextui-org/react'
 // import { CmdKConfigurer } from "@cmdk/react-ui-toolkit"
 import App from "./App";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import './index.css'
+import './tailwind.css'
 import { Toaster } from './components/ui/toaster';
 import NotFound from './components/dom/404';
 import TypeSafeApi from './components/typeSafeApi';

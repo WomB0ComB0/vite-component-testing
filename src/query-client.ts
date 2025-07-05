@@ -59,13 +59,6 @@ export const createQueryClient = cache(() => {
           }
         }),
         defaultOptions: {
-          // queries: {
-          //   staleTime: 30 * 1000,
-          //   refetchOnWindowFocus: false,
-          //   queryFn: async ({ queryKey }) => fetchWithSuperJSON(queryKey[0] as string),
-          //   retry: 2,
-          //   retryOnMount: false,
-          // },
           dehydrate: {
             serializeData: SuperJSON.serialize,
             shouldDehydrateQuery: (query) =>

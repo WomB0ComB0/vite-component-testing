@@ -28,7 +28,7 @@ const Example = React.memo(() => {
       >
         {(posts: Post[]) => (
           <ul>
-            {posts.map((post) => (
+            {posts.slice(0, 10).map((post) => (
               <li key={post.id} style={{ marginBottom: '1.5rem' }}>
                 <h2>{post.title}</h2>
                 <p>{post.body}</p>
