@@ -28,3 +28,604 @@ export default {
 - Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
 - Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
 - Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+
+```mermaid
+graph TD
+   index[bin/ts/index.ts]
+   package-cost[bin/ts/package-cost.ts]
+   check-unused[bin/ts/check-unused.ts]
+   img-to-b64[bin/ts/img-to-b64.ts]
+   index[packages/index.ts]
+   index[packages/ui/index.ts]
+   index[packages/ui/components/index.ts]
+   button.stories[packages/ui/components/button.stories.ts]
+   picture.stories[packages/ui/components/picture.stories.ts]
+   text.stories[packages/ui/components/text.stories.ts]
+   server[server.ts]
+   index[src/utils/index.ts]
+   index[src/constants/index.ts]
+   index[src/providers/core/index.ts]
+   index[src/providers/core/global/index.ts]
+   index[src/providers/core/server/index.ts]
+   query-client[src/providers/core/server/query-client.ts]
+   index[src/providers/index.ts]
+   index[src/providers/theme/index.ts]
+   index[src/server/dal/index.ts]
+   index[src/server/dal/dao/index.ts]
+   index[src/server/dal/models/index.ts]
+   Button.stories[src/stories/Button.stories.ts]
+   Button[src/stories/Button.tsx]
+   Header.stories[src/stories/Header.stories.ts]
+   Header[src/stories/Header.tsx]
+   Page.stories[src/stories/Page.stories.ts]
+   Page[src/stories/Page.tsx]
+   helpers[src/utils/helpers.ts]
+   singletons[src/utils/singletons.ts]
+   logger[src/utils/logger.ts]
+   thread-pool[ts/classes/worker/thread-pool.ts]
+   types[ts/classes/worker/types.ts]
+   worker[ts/classes/worker/worker.ts]
+   index[ts/index.ts]
+   index[ts/classes/index.ts]
+   vite.config[vite.config.ts]
+   button[packages/ui/components/button.tsx]
+   index[packages/ui/components/types/index.ts]
+   picture[packages/ui/components/picture.tsx]
+   index[src/lib/index.ts]
+   text[packages/ui/components/text.tsx]
+   app[src/app.tsx]
+   index[src/pages/index.ts]
+   index[src/components/index.ts]
+   index[src/scripts/index.ts]
+   client-error[src/components/client-error.tsx]
+   alert[src/components/ui/alert.tsx]
+   utils[src/lib/utils.ts]
+   accordion[src/components/ui/accordion.tsx]
+   alert-dialog[src/components/ui/alert-dialog.tsx]
+   button[src/components/ui/button.tsx]
+   avatar[src/components/ui/avatar.tsx]
+   badge[src/components/ui/badge.tsx]
+   breadcrumb[src/components/ui/breadcrumb.tsx]
+   calendar[src/components/ui/calendar.tsx]
+   card[src/components/ui/card.tsx]
+   carousel[src/components/ui/carousel.tsx]
+   chart[src/components/ui/chart.tsx]
+   checkbox[src/components/ui/checkbox.tsx]
+   command[src/components/ui/command.tsx]
+   dialog[src/components/ui/dialog.tsx]
+   context-menu[src/components/ui/context-menu.tsx]
+   drawer[src/components/ui/drawer.tsx]
+   dropdown-menu[src/components/ui/dropdown-menu.tsx]
+   form[src/components/ui/form.tsx]
+   label[src/components/ui/label.tsx]
+   hover-card[src/components/ui/hover-card.tsx]
+   input-otp[src/components/ui/input-otp.tsx]
+   input[src/components/ui/input.tsx]
+   menubar[src/components/ui/menubar.tsx]
+   navigation-menu[src/components/ui/navigation-menu.tsx]
+   pagination[src/components/ui/pagination.tsx]
+   popover[src/components/ui/popover.tsx]
+   progress[src/components/ui/progress.tsx]
+   radio-group[src/components/ui/radio-group.tsx]
+   resizable[src/components/ui/resizable.tsx]
+   scroll-area[src/components/ui/scroll-area.tsx]
+   select[src/components/ui/select.tsx]
+   separator[src/components/ui/separator.tsx]
+   sheet[src/components/ui/sheet.tsx]
+   sidebar[src/components/ui/sidebar.tsx]
+   use-mobile[src/hooks/use-mobile.ts]
+   skeleton[src/components/ui/skeleton.tsx]
+   tooltip[src/components/ui/tooltip.tsx]
+   slider[src/components/ui/slider.tsx]
+   switch[src/components/ui/switch.tsx]
+   table[src/components/ui/table.tsx]
+   tabs[src/components/ui/tabs.tsx]
+   textarea[src/components/ui/textarea.tsx]
+   toggle-group[src/components/ui/toggle-group.tsx]
+   toggle[src/components/ui/toggle.tsx]
+   view-transition-handler[src/components/view-transition-handler.tsx]
+   page-layout[src/layouts/page-layout.tsx]
+   main[src/main.tsx]
+   about[src/pages/about.tsx]
+   index[src/layouts/index.ts]
+   events[src/pages/events.tsx]
+   home[src/pages/home.tsx]
+   projects[src/pages/projects.tsx]
+   team[src/pages/team.tsx]
+   zustand-provider[src/providers/core/global/zustand-provider.tsx]
+   index[src/core/index.ts]
+   react[src/providers/core/server/react.tsx]
+   provider[src/providers/provider.tsx]
+   theme-toggle[src/providers/theme/theme-toggle.tsx]
+   scripts[src/scripts/scripts.tsx]
+   schema[src/scripts/schema.ts]
+   class app myClass1
+         index --> package-cost
+         index --> check-unused
+         index --> img-to-b64
+         index --> index
+         index --> index
+         button.stories --> index
+         picture.stories --> index
+         text.stories --> index
+         server --> index
+         server --> index
+         index --> index
+         index --> index
+         query-client --> index
+         index --> index
+         index --> index
+         index --> index
+         index --> index
+         Button.stories --> Button
+         Header.stories --> Header
+         Header --> Button
+         Page.stories --> Page
+         Page --> Header
+         helpers --> index
+         singletons --> logger
+         thread-pool --> types
+         thread-pool --> index
+         worker --> types
+         index --> index
+         vite.config --> index
+         vite.config --> index
+         button --> index
+         picture --> index
+         picture --> index
+         text --> index
+         app --> index
+         app --> index
+         app --> index
+         client-error --> alert
+         alert --> utils
+         accordion --> utils
+         alert-dialog --> utils
+         alert-dialog --> button
+         button --> utils
+         avatar --> utils
+         badge --> utils
+         breadcrumb --> utils
+         calendar --> utils
+         calendar --> button
+         card --> utils
+         carousel --> utils
+         carousel --> button
+         chart --> utils
+         checkbox --> utils
+         command --> utils
+         command --> dialog
+         dialog --> utils
+         context-menu --> utils
+         drawer --> utils
+         dropdown-menu --> utils
+         form --> utils
+         form --> label
+         label --> utils
+         hover-card --> utils
+         input-otp --> utils
+         input --> utils
+         menubar --> utils
+         navigation-menu --> utils
+         pagination --> utils
+         pagination --> button
+         popover --> utils
+         progress --> utils
+         radio-group --> utils
+         resizable --> utils
+         scroll-area --> utils
+         select --> utils
+         separator --> utils
+         sheet --> utils
+         sidebar --> use-mobile
+         sidebar --> utils
+         sidebar --> button
+         sidebar --> input
+         sidebar --> separator
+         sidebar --> sheet
+         sidebar --> skeleton
+         sidebar --> tooltip
+         skeleton --> utils
+         tooltip --> utils
+         slider --> utils
+         switch --> utils
+         table --> utils
+         tabs --> utils
+         textarea --> utils
+         toggle-group --> utils
+         toggle-group --> toggle
+         toggle --> utils
+         view-transition-handler --> index
+         page-layout --> index
+         main --> index
+         about --> card
+         about --> index
+         about --> index
+         events --> card
+         events --> index
+         home --> button
+         home --> index
+         home --> index
+         projects --> card
+         projects --> index
+         team --> card
+         team --> index
+         team --> index
+         zustand-provider --> index
+         react --> index
+         react --> index
+         provider --> index
+         provider --> tooltip
+         theme-toggle --> button
+         scripts --> index
+         scripts --> index
+         scripts --> schema
+
+   subgraph cluster_1 bin
+      subgraph cluster_2 ts
+            check-unused
+            img-to-b64
+            index
+            package-cost
+      end
+   end
+
+   subgraph cluster_3 packages
+      index
+      subgraph cluster_4 ui
+            index
+            subgraph cluster_5 components
+                        button.stories
+                        button
+                        index
+                        picture.stories
+                        picture
+                        text.stories
+                        text
+                        subgraph cluster_6 types
+                                                index
+                        end
+            end
+      end
+   end
+
+   subgraph cluster_7 src
+      app
+      main
+      subgraph cluster_8 components
+            client-error
+            index
+            view-transition-handler
+            subgraph cluster_9 ui
+                        accordion
+                        alert-dialog
+                        alert
+                        avatar
+                        badge
+                        breadcrumb
+                        button
+                        calendar
+                        card
+                        carousel
+                        chart
+                        checkbox
+                        command
+                        context-menu
+                        dialog
+                        drawer
+                        dropdown-menu
+                        form
+                        hover-card
+                        input-otp
+                        input
+                        label
+                        menubar
+                        navigation-menu
+                        pagination
+                        popover
+                        progress
+                        radio-group
+                        resizable
+                        scroll-area
+                        select
+                        separator
+                        sheet
+                        sidebar
+                        skeleton
+                        slider
+                        switch
+                        table
+                        tabs
+                        textarea
+                        toggle-group
+                        toggle
+                        tooltip
+            end
+      end
+
+      subgraph cluster_10 constants
+            index
+      end
+
+      subgraph cluster_11 core
+            index
+      end
+
+      subgraph cluster_12 hooks
+            use-mobile
+      end
+
+      subgraph cluster_13 layouts
+            index
+            page-layout
+      end
+
+      subgraph cluster_14 lib
+            index
+            utils
+      end
+
+      subgraph cluster_15 pages
+            about
+            events
+            home
+            index
+            projects
+            team
+      end
+
+      subgraph cluster_16 providers
+            index
+            provider
+            subgraph cluster_17 core
+                        index
+                        subgraph cluster_18 global
+                                                index
+                                                zustand-provider
+                        end
+
+                        subgraph cluster_19 server
+                                                index
+                                                query-client
+                                                react
+                        end
+            end
+
+            subgraph cluster_20 theme
+                        index
+                        theme-toggle
+            end
+      end
+
+      subgraph cluster_21 scripts
+            index
+            schema
+            scripts
+      end
+
+      subgraph cluster_22 server
+            subgraph cluster_23 dal
+                        index
+                        subgraph cluster_24 dao
+                                                index
+                        end
+
+                        subgraph cluster_25 models
+                                                index
+                        end
+            end
+      end
+
+      subgraph cluster_26 stories
+            Button.stories
+            Button
+            Header.stories
+            Header
+            Page.stories
+            Page
+      end
+
+      subgraph cluster_27 utils
+            helpers
+            index
+            logger
+            singletons
+      end
+   end
+
+   subgraph cluster_28 ts
+      index
+      subgraph cluster_29 classes
+            index
+            subgraph cluster_30 worker
+                        thread-pool
+                        types
+                        worker
+            end
+      end
+   end
+
+   subgraph cluster_1 bin
+      subgraph cluster_2 ts
+            check-unused
+            img-to-b64
+            index
+            package-cost
+      end
+   end
+
+   subgraph cluster_3 packages
+      index
+      subgraph cluster_4 ui
+            index
+            subgraph cluster_5 components
+                        button.stories
+                        button
+                        index
+                        picture.stories
+                        picture
+                        text.stories
+                        text
+                        subgraph cluster_6 types
+                                                index
+                        end
+            end
+      end
+   end
+
+   subgraph cluster_7 src
+      app
+      main
+      subgraph cluster_8 components
+            client-error
+            index
+            view-transition-handler
+            subgraph cluster_9 ui
+                        accordion
+                        alert-dialog
+                        alert
+                        avatar
+                        badge
+                        breadcrumb
+                        button
+                        calendar
+                        card
+                        carousel
+                        chart
+                        checkbox
+                        command
+                        context-menu
+                        dialog
+                        drawer
+                        dropdown-menu
+                        form
+                        hover-card
+                        input-otp
+                        input
+                        label
+                        menubar
+                        navigation-menu
+                        pagination
+                        popover
+                        progress
+                        radio-group
+                        resizable
+                        scroll-area
+                        select
+                        separator
+                        sheet
+                        sidebar
+                        skeleton
+                        slider
+                        switch
+                        table
+                        tabs
+                        textarea
+                        toggle-group
+                        toggle
+                        tooltip
+            end
+      end
+
+      subgraph cluster_10 constants
+            index
+      end
+
+      subgraph cluster_11 core
+            index
+      end
+
+      subgraph cluster_12 hooks
+            use-mobile
+      end
+
+      subgraph cluster_13 layouts
+            index
+            page-layout
+      end
+
+      subgraph cluster_14 lib
+            index
+            utils
+      end
+
+      subgraph cluster_15 pages
+            about
+            events
+            home
+            index
+            projects
+            team
+      end
+
+      subgraph cluster_16 providers
+            index
+            provider
+            subgraph cluster_17 core
+                        index
+                        subgraph cluster_18 global
+                                                index
+                                                zustand-provider
+                        end
+
+                        subgraph cluster_19 server
+                                                index
+                                                query-client
+                                                react
+                        end
+            end
+
+            subgraph cluster_20 theme
+                        index
+                        theme-toggle
+            end
+      end
+
+      subgraph cluster_21 scripts
+            index
+            schema
+            scripts
+      end
+
+      subgraph cluster_22 server
+            subgraph cluster_23 dal
+                        index
+                        subgraph cluster_24 dao
+                                                index
+                        end
+
+                        subgraph cluster_25 models
+                                                index
+                        end
+            end
+      end
+
+      subgraph cluster_26 stories
+            Button.stories
+            Button
+            Header.stories
+            Header
+            Page.stories
+            Page
+      end
+
+      subgraph cluster_27 utils
+            helpers
+            index
+            logger
+            singletons
+      end
+   end
+
+   subgraph cluster_28 ts
+      index
+      subgraph cluster_29 classes
+            index
+            subgraph cluster_30 worker
+                        thread-pool
+                        types
+                        worker
+            end
+      end
+   end
+```
