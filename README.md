@@ -30,3 +30,5 @@ export default {
 - Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
 
 ![Deps](./dependencygraph.svg)
+
+![Deps2](https://raw.githubusercontent.com/WomB0ComB0/vite-component-testing/c7c12dfa2b33b1a121089c0e7530de02133b3f6c/dependencygraph.svg)
