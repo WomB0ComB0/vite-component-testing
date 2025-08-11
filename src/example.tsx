@@ -12,14 +12,15 @@ interface Post {
 const Example = React.memo(() => {
   const { data } = useDataLoader<Post[]>('https://jsonplaceholder.typicode.com/posts')
   const res = useCallback(() => {
-    console.log(`render`);
-    console.log(data);
+    // console.log(`render`);
+    // console.log(data);
   }, [data])
 
   useEffect(() => {
     res()
+    console.table(import.meta.env.JWT_SECRETS)
   }, [])
-
+  
   return (
     <div>
       <h1>Posts List Him</h1>
