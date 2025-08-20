@@ -14,13 +14,12 @@ const SearchRecommendation = type({
 			title: "string",
 			snippet: "string",
 			"thumbnail?": {
-				// The '?' makes this property optional
 				src: "string",
 				width: "string",
 				height: "string",
 			},
 		},
-		"[]", // Specifies that 'items' is an array of the preceding object type
+		"[]",
 	],
 });
 

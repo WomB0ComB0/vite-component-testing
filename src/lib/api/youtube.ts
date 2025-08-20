@@ -1,11 +1,13 @@
+import { get } from "@/effect-fetcher";
+import { FetchHttpClient } from "@effect/platform";
 import { type } from "arktype";
-import axios from "axios";
+import { Effect, pipe } from "effect";
 
-const YOUTUBE_API_KEY = Bun.env.GOOGLE_API_KEY;
+const YOUTUBE_API_KEY = process.env.GOOGLE_API_KEY;
 
 // ArkType schema for the YouTube API Search response
 const ThumbnailDetail = type({
-	url: "URL",
+	url: "string.url",
 	width: "number",
 	height: "number",
 });
@@ -46,8 +48,8 @@ const PageInfo = type({
 export const YoutubeSearchResponse = type({
 	kind: "'youtube#searchListResponse'",
 	etag: "string",
-	nextPageToken: "string|undefined",
-	prevPageToken: "string|undefined",
+	"nextPageToken?": "string",
+	"prevPageToken?": "string",
 	regionCode: "string",
 	pageInfo: PageInfo,
 	items: [SearchResultItem, "[]"],
@@ -86,35 +88,61 @@ export const searchYouTube = async (
 		key: YOUTUBE_API_KEY,
 	};
 
-	if (pageToken) {
-		params.pageToken = pageToken;
-	}
+	if (pageToken) params.pageToken = pageToken;
 
 	try {
-		const response = await axios.get(YOUTUBE_SEARCH_ENDPOINT, { params });
+		const effect =
+			pipe(
+				get(
+					YOUTUBE_SEARCH_ENDPOINT,
+					{ schema: YoutubeSearchResponse },
+					params
+				),
+				Effect.provide(FetchHttpClient.layer)
+			)
 
-		// Validate the response data at runtime
-		const { data: validatedData, problems } = YoutubeSearchResponse(
-			response.data,
-		);
+		const res = await Effect.runPromise(effect).catch((e) => { throw new Error(String(e)) })
 
-		if (problems) {
-			// If the data doesn't match the expected shape, throw an error
-			throw new Error(`Invalid API response from YouTube: ${problems}`);
+		if (!res) {
+			throw new Error(`Invalid API response from YouTube`);
 		}
 
-		// Return the validated, typesafe data
-		return validatedData;
+		return res;
 	} catch (error) {
-		// Provide more specific error details if available from axios
-		if (axios.isAxiosError(error)) {
-			const errorDetails =
-				error.response?.data?.error?.message || error.message;
-			throw new Error(`Error searching YouTube: ${errorDetails}`);
+		if (Error.isError(error)) {
+			throw new Error(`Error searching YouTube: ${error.message}`);
 		}
-		// Fallback for other types of errors
 		throw new Error(
-			`Error searching YouTube: ${error instanceof Error ? error.message : String(error)}`,
+			`Error searching YouTube: ${String(error)}`,
 		);
 	}
 };
+
+// simple “main” using Effect to provide the fetch layer once
+const program = Effect.gen(function* () {
+	const query = "TypeScript Effect tutorial";
+
+	const firstPage = yield* Effect.tryPromise({
+		try: () => searchYouTube(query),
+		catch: (e) => new Error(`search failed: ${String(e)}`),
+	});
+
+	// Print the top results
+	for (const item of firstPage.items) {
+		// item.snippet, item.id.videoId, etc. come fully typed via ArkType inference
+		console.log(
+			`${item.snippet.title} — https://www.youtube.com/watch?v=${item.id.videoId}`
+		);
+	}
+
+	return firstPage.nextPageToken;
+}).pipe(
+	// Provide the platform HTTP client once at the edge
+	Effect.provide(FetchHttpClient.layer)
+);
+
+// Run as a Promise (handy in Bun/Node scripts)
+Effect.runPromise(program).catch((err) => {
+	console.error(err);
+	process.exit(1);
+});
