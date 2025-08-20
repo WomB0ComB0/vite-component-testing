@@ -101,7 +101,7 @@ export const searchYouTube = async (
 				Effect.provide(FetchHttpClient.layer)
 			)
 
-		const res = await Effect.runPromise(effect).catch((e) => { throw new Error(String(e)) })
+		const res = await Effect.runPromise(effect)
 
 		if (!res) {
 			throw new Error(`Invalid API response from YouTube`);

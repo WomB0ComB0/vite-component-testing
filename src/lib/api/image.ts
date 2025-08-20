@@ -18,6 +18,7 @@ import fs from "node:fs";
 import { GoogleGenAI } from "@google/genai";
 import { type } from "arktype";
 import { v4 as uuidv4 } from "uuid";
+import { Error } from "effect/Data";
 
 // --- ArkType Schemas for Data Validation ---
 
@@ -144,15 +145,15 @@ class ImageContextExtractor {
 				processingStatus: "completed" as const,
 			};
 
-			const { data, problems } = ImageAnalysisResult(resultObject);
-			if (problems) {
+			const data = ImageAnalysisResult.assert(resultObject);
+			if (!data) {
 				throw new Error(
-					`Internal data validation failed for ImageAnalysisResult: ${problems}`,
+					`Internal data validation failed for ImageAnalysisResult`,
 				);
 			}
 			return data;
 		} catch (error) {
-			if (Error.isError(error)) {
+			if (error instanceof Error) {
 				console.error("Error processing image:", error);
 				throw new Error(`Image processing failed: ${error.message}`);
 			} else {
@@ -213,15 +214,15 @@ class ImageContextExtractor {
 			};
 
 			// Validate the created object at runtime
-			const { data, problems } = InitialResults(resultObject);
-			if (problems) {
+			const res = InitialResults.assert(resultObject);
+			if (!res) {
 				throw new Error(
-					`Internal data validation failed for InitialResults: ${problems}`,
+					`Internal data validation failed for InitialResults`,
 				);
 			}
-			return data;
+			return res;
 		} catch (error) {
-			if (Error.isError(error)) {
+			if (error instanceof Error) {
 				console.error("Error generating initial results:", error);
 				throw new Error(`Results generation failed: ${error.message}`);
 			} else {
@@ -287,14 +288,14 @@ class ImageContextExtractor {
 			};
 
 			// Validate the created object at runtime
-			const { data, problems } = MetadataResults(resultObject);
-			if (problems) {
+			const res = MetadataResults.assert(resultObject);
+			if (!res) {
 				throw new Error(
-					`Internal data validation failed for MetadataResults: ${problems}`,
+					`Internal data validation failed for MetadataResults`,
 				);
 			}
-			return data;
-		} catch (error: unknown) {
+			return res;
+		} catch (error) {
 			if (error instanceof Error) {
 				console.error("Error extracting metadata:", error);
 				throw new Error(`Metadata extraction failed: ${error.message}`);
@@ -343,14 +344,14 @@ class ImageContextExtractor {
 			};
 
 			// Validate the final composed object
-			const { data, problems } = PipelineResult(resultObject);
-			if (problems) {
+			const res = PipelineResult.assert(resultObject);
+			if (!res) {
 				throw new Error(
-					`Internal data validation failed for final PipelineResult: ${problems}`,
+					`Internal data validation failed for final PipelineResult`,
 				);
 			}
-			return data;
-		} catch (error: unknown) {
+			return res;
+		} catch (error) {
 			if (error instanceof Error) {
 				console.error("Pipeline processing failed:", error);
 				throw error;

@@ -14,7 +14,10 @@
  * limitations under the License.
  */
 
+import { get } from "@/effect-fetcher";
+import { FetchHttpClient } from "@effect/platform";
 import { type } from "arktype";
+import { Effect, pipe } from "effect";
 
 // ArkType definitions for GNews API
 const Article = type({
@@ -69,97 +72,79 @@ class GNewsAPI {
 		to?: string;
 		sortby?: "relevance" | "publishedAt";
 	}): Promise<GNewsResponse> {
-		const searchParams = new URLSearchParams({
-			apikey: this.apiKey,
-			...Object.fromEntries(
-				Object.entries(params).map(([key, value]) => [key, String(value)]),
-			),
-		});
-
-		const url = `${this.baseUrl}/search?${searchParams}`;
-
 		try {
-			const response = await fetch(url);
-			const data = await response.json();
+			const effect = pipe(
+				get(
+					`${this.baseUrl}/search`,
+					{ schema: GNewsResponse, retries: 1, retryDelay: 500 },
+					{
+						apikey: this.apiKey,
+						q: params.q,
+						lang: params.lang,
+						country: params.country,
+						max: params.max,
+						in: params.in,
+						nullable: params.nullable,
+						from: params.from,
+						to: params.to,
+						sortby: params.sortby
+					}
+				),
+				Effect.provide(FetchHttpClient.layer)
+			);
 
-			if (!response.ok) {
-				const { data: errorData, problems } = GNewsError(data);
-				if (problems) {
-					throw new Error(`API Error: Invalid error response - ${problems}`);
-				}
-				throw new Error(
-					`API Error: ${errorData?.errors?.join(", ") || "Unknown error"}`,
-				);
-			}
-
-			const { data: responseData, problems } = GNewsResponse(data);
-			if (problems) {
-				throw new Error(`API Error: Invalid response - ${problems}`);
-			}
-
-			return responseData;
-		} catch (error) {
-			console.error("Search request failed:", error);
-			throw error;
+			return await Effect.runPromise(effect); // already validated to GNewsResponse
+		} catch (err) {
+			// Optional: nicer logs for your custom errors
+			console.error("Search request failed:", err);
+			throw err;
 		}
 	}
 
 	/**
 	 * Get top headlines
 	 */
-	async getTopHeadlines(params?: {
-		lang?: string;
-		country?: string;
-		max?: number;
-		nullable?: string;
-		category?:
-			| "general"
-			| "world"
-			| "nation"
-			| "business"
-			| "technology"
-			| "entertainment"
-			| "sports"
-			| "science"
-			| "health";
-	}): Promise<GNewsResponse> {
-		const searchParams = new URLSearchParams({
-			apikey: this.apiKey,
-			...Object.fromEntries(
-				Object.entries(params || {}).map(([key, value]) => [
-					key,
-					String(value),
-				]),
-			),
-		});
+  async getTopHeadlines(params?: {
+    lang?: string;
+    country?: string;
+    max?: number;
+    nullable?: string;
+    category?:
+      | "general"
+      | "world"
+      | "nation"
+      | "business"
+      | "technology"
+      | "entertainment"
+      | "sports"
+      | "science"
+      | "health";
+  }): Promise<GNewsResponse> {
+    const effect = pipe(
+      get(
+        `${this.baseUrl}/top-headlines`,
+        {
+          schema: GNewsResponse,
+          retries: 1,
+          retryDelay: 500,
+          timeout: 10_000,
+        },
+        {
+          apikey: this.apiKey,
+          lang: params?.lang,
+          country: params?.country,
+          max: params?.max,
+          nullable: params?.nullable,
+          category: params?.category,
+        }
+      ),
+      // provide the HTTP client once at the edge
+      Effect.provide(FetchHttpClient.layer)
+    );
 
-		const url = `${this.baseUrl}/top-headlines?${searchParams}`;
+    return Effect.runPromise(effect);
+  }
 
-		try {
-			const response = await fetch(url);
-			const data = await response.json();
-
-			if (!response.ok) {
-				const { data: errorData, problems } = GNewsError(data);
-				if (problems) {
-					throw new Error(`API Error: Invalid error response - ${problems}`);
-				}
-				throw new Error(
-					`API Error: ${errorData?.errors?.join(", ") || "Unknown error"}`,
-				);
-			}
-
-			const { data: responseData, problems } = GNewsResponse(data);
-			if (problems) {
-				throw new Error(`API Error: Invalid response - ${problems}`);
-			}
-
-			return responseData;
-		} catch (error) {
-			console.error("Top headlines request failed:", error);
-			throw error;
-		}
-	}
 
 	/**
 	 * Helper method to display articles in a formatted way
@@ -187,68 +172,69 @@ class GNewsAPI {
 }
 
 // Test function
-// async function testGNewsAPI() {
-//   try {
-//     const gnews = new GNewsAPI();
+async function testGNewsAPI() {
+  try {
+    const gnews = new GNewsAPI();
 
-//     console.log('🔍 Testing GNews API...\n');
+    console.log('🔍 Testing GNews API...\n');
 
-//     // Test 1: Search for specific topic
-//     console.log('1️⃣ Testing search endpoint...');
-//     const searchResults = await gnews.search({
-//       q: 'artificial intelligence',
-//       lang: 'en',
-//       max: 5,
-//       sortby: 'publishedAt',
-//     });
+    // Test 1: Search for specific topic
+    console.log('1️⃣ Testing search endpoint...');
+    const searchResults = await gnews.search({
+      q: 'artificial intelligence',
+      lang: 'en',
+      max: 5,
+      sortby: 'publishedAt',
+    });
 
-//     console.log(`Found ${searchResults.totalArticles} articles about AI`);
-//     gnews.displayArticles(searchResults.articles, 3);
+    console.log(`Found ${searchResults.totalArticles} articles about AI`);
+    gnews.displayArticles(searchResults.articles, 3);
 
-//     // Test 2: Get top headlines
-//     console.log('\n2️⃣ Testing top headlines endpoint...');
-//     const headlines = await gnews.getTopHeadlines({
-//       category: 'technology',
-//       lang: 'en',
-//       max: 5,
-//     });
+    // Test 2: Get top headlines
+    console.log('\n2️⃣ Testing top headlines endpoint...');
+    const headlines = await gnews.getTopHeadlines({
+      category: 'technology',
+      lang: 'en',
+      max: 5,
+    });
 
-//     console.log(`Found ${headlines.totalArticles} top technology headlines`);
-//     gnews.displayArticles(headlines.articles, 3);
+    console.log(`Found ${headlines.totalArticles} top technology headlines`);
+    gnews.displayArticles(headlines.articles, 3);
 
-//     // Test 3: Search with date range (last 7 days)
-//     console.log('\n3️⃣ Testing search with date range...');
-//     const sevenDaysAgo = new Date();
-//     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Test 3: Search with date range (last 7 days)
+    console.log('\n3️⃣ Testing search with date range...');
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-//     const recentNews = await gnews.search({
-//       q: 'climate change',
-//       lang: 'en',
-//       from: sevenDaysAgo.toISOString().split('T')[0],
-//       max: 3,
-//       sortby: 'publishedAt',
-//     });
+    const recentNews = await gnews.search({
+      q: 'climate change',
+      lang: 'en',
+      from: sevenDaysAgo.toISOString().split('T')[0],
+      max: 3,
+      sortby: 'publishedAt',
+    });
 
-//     console.log(
-//       `Found ${recentNews.totalArticles} recent articles about climate change`
-//     );
-//     gnews.displayArticles(recentNews.articles, 2);
+    console.log(
+      `Found ${recentNews.totalArticles} recent articles about climate change`
+    );
+    gnews.displayArticles(recentNews.articles, 2);
 
-//     console.log('\n✅ All tests completed successfully!');
-//   } catch (error) {
-//     console.error('❌ Test failed:', error);
+    console.log('\n✅ All tests completed successfully!');
+  } catch (error) {
+    console.error('❌ Test failed:', error);
 
-//     if (error instanceof Error) {
-//       if (error.message.includes('GNEWS_API_KEY')) {
-//         console.log(
-//           '\n💡 Make sure to set your GNEWS_API_KEY environment variable'
-//         );
-//         console.log(
-//           '   You can create a .env file with: GNEWS_API_KEY=your_api_key_here'
-//         );
-//       }
-//     }
-//   }
-// }
+    if (error instanceof Error) {
+      if (error.message.includes('GNEWS_API_KEY')) {
+        console.log(
+          '\n💡 Make sure to set your GNEWS_API_KEY environment variable'
+        );
+        console.log(
+          '   You can create a .env file with: GNEWS_API_KEY=your_api_key_here'
+        );
+      }
+    }
+  }
+}
 
-export { GNewsAPI, Article, GNewsResponse };
+export { Article, GNewsAPI, GNewsResponse };
+(async () => console.log(await testGNewsAPI().catch(console.error)))()

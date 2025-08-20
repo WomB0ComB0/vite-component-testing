@@ -62,36 +62,37 @@ export const search = async (query: string): Promise<SearchRecommendation> => {
 		// Transform the raw, unpredictable API response into a clean, structured object.
 		const transformedData = {
 			info: {
-				totalResults: rawData.searchInformation?.totalResults || "0",
-				searchTime: rawData.searchInformation?.searchTime || 0,
-				formattedTotalResults:
-					rawData.searchInformation?.formattedTotalResults || "0",
-				formattedSearchTime:
-					rawData.searchInformation?.formattedSearchTime || "0",
+				totalResults: rawData.searchInformation?.totalResults ?? "0",
+				searchTime: rawData.searchInformation?.searchTime ?? 0,
+				formattedTotalResults: rawData.searchInformation?.formattedTotalResults ?? "0",
+				formattedSearchTime: rawData.searchInformation?.formattedSearchTime ?? "0",
 			},
-			items:
-				rawData.items?.map((item) => ({
-					link: item.link || "",
-					title: item.title || "No title",
-					snippet: item.snippet || "No snippet available",
-					thumbnail:
-						item.pagemap?.cse_thumbnail?.[0] &&
-						item.pagemap.cse_thumbnail[0].src
-							? {
-									src: item.pagemap.cse_thumbnail[0].src,
-									width: item.pagemap.cse_thumbnail[0].width || "",
-									height: item.pagemap.cse_thumbnail[0].height || "",
-								}
-							: undefined,
-				})) || [],
+			items: (rawData.items ?? []).map((item) => {
+				const t = item.pagemap?.cse_thumbnail?.[0];
+				return {
+					link: item.link ?? "",
+					title: item.title ?? "No title",
+					snippet: item.snippet ?? "No snippet available",
+					// 👉 Only add the key if we actually have a thumbnail
+					...(t?.src
+						? {
+							thumbnail: {
+								src: String(t.src),
+								width: String(t.width ?? ""),
+								height: String(t.height ?? ""),
+							},
+						}
+						: {}),
+				};
+			}),
 		};
 
 		// Validate the transformed data against the ArkType schema at runtime.
-		const { data, problems } = SearchRecommendation(transformedData);
+		const data = SearchRecommendation.assert(transformedData);
 
-		if (problems) {
+		if (!data) {
 			// If validation fails, throw an error with details.
-			throw new Error(`Invalid search response structure: ${problems}`);
+			throw new Error(`Invalid search response structure`);
 		}
 
 		// Return the validated, typesafe data.
@@ -102,3 +103,34 @@ export const search = async (query: string): Promise<SearchRecommendation> => {
 		);
 	}
 };
+
+// Helper to log and exit gracefully
+// async function runTest() {
+// 	const query = "OpenAI GPT-4 capabilities";
+// 	console.log(`\nRunning search for: "${query}"\n`);
+
+// 	try {
+// 		const result = await search(query);
+
+// 		// If this runs, `result` is fully validated
+// 		console.log("✅ Validation passed. Parsed output:");
+// 		console.log("Info:", result.info);
+// 		console.log("Number of items:", result.items.length);
+
+// 		result.items.forEach((it, idx) => {
+// 			console.log(`\nResult #${idx + 1}`);
+// 			console.log("Title: ", it.title);
+// 			console.log("Link:  ", it.link);
+// 			console.log("Snippet:", it.snippet);
+// 			if (it.thumbnail) {
+// 				console.log("Thumbnail:", it.thumbnail.src);
+// 			}
+// 		});
+// 	} catch (err) {
+// 		console.error("⛔ Search request failed or validation error:");
+// 		console.error(err);
+// 		process.exit(1); // Non-zero exit code for CI/test runners
+// 	}
+// }
+
+// runTest();
