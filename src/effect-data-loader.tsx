@@ -1,4 +1,4 @@
-"use client";
+("use client");
 
 import { FetchHttpClient } from "@effect/platform";
 import type { QueryKey } from "@tanstack/react-query";
@@ -238,7 +238,7 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 			retries: 3,
 			retryDelay: 1_000,
 			timeout: 30_000,
-			onError: (err: unknown) => {
+			onError: (err) => {
 				const path = parseCodePath(url, fetcher);
 				console.error(`[DataLoader]: ${path}`);
 
@@ -254,16 +254,12 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 				}
 
 				// Call user-provided error handler
-				if (onError && err instanceof Error) {
-					onError(err);
-				}
+				if (onError && Error.isError(err)) onError(err);
 			},
 			...(options || {}),
 		} as FetcherOptions<any>;
 
-		if (schema) {
-			return { ...baseOptions, schema };
-		}
+		if (schema) return { ...baseOptions, schema };
 
 		return baseOptions;
 	}, [url, options, onError, schema]);
@@ -290,24 +286,18 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 					: result;
 
 			// Call success callback
-			if (onSuccess) {
-				onSuccess(finalResult as any);
-			}
+			if (onSuccess) onSuccess(finalResult as any);
 
 			return finalResult;
 		} catch (error) {
 			// Enhanced error handling for validation errors
-			if (error instanceof ValidationError) {
-				throw error;
-			}
+			if (error instanceof ValidationError) throw error;
 
-			if (error instanceof FetcherError) {
-				throw error;
-			}
+			if (error instanceof FetcherError) throw error;
 
 			// Wrap unexpected errors
 			throw new FetcherError(
-				error instanceof Error ? error.message : "Unknown error occurred",
+				Error.isError(error) ? error.message : "Unknown error occurred",
 				url,
 				undefined,
 				error,
@@ -325,20 +315,15 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 			refetchOnWindowFocus: refetchOnWindowFocus as boolean,
 			refetchOnReconnect: refetchOnReconnect as boolean,
 			retry: (failureCount: number, error: unknown) => {
-				// Don't retry validation errors
-				if (error instanceof ValidationError) {
-					return false;
-				}
-
 				// Don't retry client errors (4xx)
 				if (
-					error instanceof FetcherError &&
-					error.status &&
-					error.status >= 400 &&
-					error.status < 500
-				) {
+					error instanceof ValidationError ||
+					(error instanceof FetcherError &&
+						error.status &&
+						error.status >= 400 &&
+						error.status < 500)
+				)
 					return false;
-				}
 
 				return failureCount < 3;
 			},
@@ -496,14 +481,14 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 			retries: 3,
 			retryDelay: 1_000,
 			timeout: 30_000,
-			onError: (err: unknown) => {
+			onError: (err) => {
 				if (err instanceof ValidationError) {
 					console.error(
 						`[useDataLoader]: Validation failed - ${err.getProblemsString()}`,
 					);
 				}
 
-				if (typeof onError === "function" && err instanceof Error) {
+				if (typeof onError === "function" && Error.isError(err)) {
 					onError(err);
 				}
 			},
@@ -533,7 +518,7 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 			transform && typeof transform === "function" ? transform(result) : result;
 
 		if (typeof onSuccess === "function") {
-			onSuccess(finalResult as any);
+			onSuccess(finalResult);
 		}
 
 		return finalResult;

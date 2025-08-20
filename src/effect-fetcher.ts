@@ -1,3 +1,5 @@
+("use strict");
+
 import { HttpClient, HttpClientRequest } from "@effect/platform";
 import { type Type, type } from "arktype";
 import { Duration, Effect, pipe, Schedule } from "effect";
@@ -127,6 +129,8 @@ export interface FetcherOptions<T = unknown> {
 	headers?: Record<string, string>;
 	/** ArkType schema for runtime validation of the response */
 	schema?: Type<T>;
+	/** Abortsignal */
+	signal?: AbortSignal;
 }
 
 /**
@@ -146,6 +150,21 @@ export class ValidationError extends Error {
 		Object.setPrototypeOf(this, ValidationError.prototype);
 	}
 
+	[Symbol.toStringTag] = "ValidationError";
+
+	[Symbol.for("nodejs.util.inspect.custom")]() {
+		return this.toString();
+	}
+
+	[Symbol.for("Deno.customInspect")]() {
+		return this.toString();
+	}
+
+	[Symbol.for("react.element")]() {
+		return this.toString();
+	}
+
+	// 🚩
 	toString(): string {
 		return `ValidationError: ${this.message} (URL: ${this.url}${this.attempt ? `, Attempt: ${this.attempt}` : ""})`;
 	}
@@ -175,8 +194,23 @@ export class FetcherError extends Error {
 		Object.setPrototypeOf(this, FetcherError.prototype);
 	}
 
+	[Symbol.toStringTag] = "FetcherError";
+
+	[Symbol.for("nodejs.util.inspect.custom")]() {
+		return this.toString();
+	}
+
+	[Symbol.for("Deno.customInspect")]() {
+		return this.toString();
+	}
+
+	[Symbol.for("react.element")]() {
+		return this.toString();
+	}
+
+	// 🚩
 	toString(): string {
-		return `FetcherError: ${this.message} (URL: ${this.url}${this.status ? `, Status: ${this.status}` : ""}${this.attempt ? `, Attempt: ${this.attempt}` : ""})`;
+		return `FetcherError: ${this.message} (URL: ${this.url}${this.status ? `, Status: ${this.status}` : ""}${this.attempt ? `, Attempt: ${this.attempt}` : parseInt("0")})`;
 	}
 }
 
@@ -498,7 +532,7 @@ export function fetcher<T = unknown>(
 						Effect.catchAll(() =>
 							Effect.fail(
 								new FetcherError(
-									`Failed to parse response: ${error instanceof Error ? error.message : String(error)}`,
+									`Failed to parse response: ${Error.isError(error) ? error.message : String(error)}`,
 									url,
 									response.status,
 									undefined,

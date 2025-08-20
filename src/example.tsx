@@ -33,7 +33,7 @@ const Example = React.memo(() => {
 			<DataLoader<Post[]> url="https://jsonplaceholder.typicode.com/posts">
 				{(posts: Post[]) => (
 					<ul>
-						{posts.slice(0, 10).map((post) => (
+						{posts.map((post) => (
 							<li key={post.id} style={{ marginBottom: "1.5rem" }}>
 								<h2>{post.title}</h2>
 								<p>{post.body}</p>

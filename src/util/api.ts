@@ -1,27 +1,28 @@
-import type { Type as ArkType } from "arktype";
+// src/ark-adapter.ts
+import { type Type as ArkType, type } from "arktype";
 
-type FetchJsonOptions = {
-	signal?: AbortSignal;
-};
+export type SafeParseResult<T> =
+	| { data: T; problems: null }
+	| { data: null; problems: { summary: string } };
 
-export const safeFetchJson = async <T>(
-	url: string,
-	schema: ArkType<T>,
-	opts: FetchJsonOptions = {},
-): Promise<T> => {
-	const res = await fetch(url, { signal: opts.signal });
-	if (!res.ok) {
-		throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
-	}
+export const toSafeParse =
+	<T>(schema: ArkType<T>) =>
+	(value: unknown): SafeParseResult<T> => {
+		const out = schema(value);
+		if (out instanceof type.errors) {
+			return { data: null, problems: { summary: out.summary } };
+		}
+		return { data: out as T, problems: null };
+	};
+
+export const safeFetchJson = async <T>(url: string, schema: ArkType<T>) => {
+	const res = await fetch(url);
+	if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
 	const json: unknown = await res.json();
-	const out = schema(json);
-	if (out instanceof (schema as any).errors ?? false) {
-		// Using ArkType's canonical error surface: out.summary
-		// (out is an ArkErrors instance)
-		const summary = (out as any).summary as string;
-		throw new Error(`Validation failed for ${url}: ${summary}`);
-	}
-	return out as T;
+
+	const { data, problems } = toSafeParse(schema)(json);
+	if (problems) throw new Error(problems.summary);
+	return data!;
 };
 
 export const withRetry = async <T>(
@@ -47,3 +48,13 @@ export const withRetry = async <T>(
 		}
 	}
 };
+
+/**
+ * export const fetchTodos = () =>
+  withRetry((signal) => safeFetchJson(TODOS_URL, Todos, { signal }));
+
+export const fetchTodoCoerced = (id: number) =>
+  withRetry((signal) =>
+    safeFetchJson(`${TODOS_URL}/${id}`, CoercedTodo, { signal })
+  );
+*/
