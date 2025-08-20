@@ -1,15 +1,13 @@
-import { useEffect } from 'react';
-import { CommandDialog, CommandList, CommandEmpty, CommandGroup, CommandItem } from "../ui/command"
-import React, { useState } from "react"
-import { Form, FormControl, FormField, FormItem } from "../ui/form"
-import { useForm } from "react-hook-form"
-import { Search, searchSchema } from "../../schema/search"
-import * as z from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useSearchParams } from "react-router-dom"
-import { Input } from "../ui/input"
-import { useNavigate } from "react-router-dom"
+import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form"
+import { useNavigate, useSearchParams } from "react-router-dom"
+import type * as z from "zod"
+import { type Search, searchSchema } from "../../schema/search"
 import { Div } from '../templates';
+import { CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } from "../ui/command"
+import { Form, FormControl, FormField, FormItem } from "../ui/form"
+import { Input } from "../ui/input"
 
 export function CommandMenu() {
   const [open, setOpen] = React.useState(false)

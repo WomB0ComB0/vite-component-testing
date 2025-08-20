@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import React from 'react';
+import { AlertTriangle } from "lucide-react";
+import React from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 /**
  * ClientError component for displaying client-side error messages in a styled alert.
@@ -35,16 +35,16 @@ import React from 'react';
  * @see {@link https://lucide.dev/icons/alert-triangle} Lucide AlertTriangle Icon
  */
 export const ClientError = ({ error }: { error: Error }) => {
-  return (
-    <Alert variant="destructive" className="m-4">
-      <AlertTriangle className="h-4 w-4" />
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>
-        {error.message || 'An unexpected client-side error occurred.'}
-      </AlertDescription>
-    </Alert>
-  );
+	return (
+		<Alert variant="destructive" className="m-4">
+			<AlertTriangle className="h-4 w-4" />
+			<AlertTitle>Error</AlertTitle>
+			<AlertDescription>
+				{error.message || "An unexpected client-side error occurred."}
+			</AlertDescription>
+		</Alert>
+	);
 };
 
-ClientError.displayName = 'ClientError';
+ClientError.displayName = "ClientError";
 export default ClientError;

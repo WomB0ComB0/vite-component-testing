@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
-import React from 'react';
+import { Loader2 } from "lucide-react";
+import { motion } from "motion/react";
+import React from "react";
 
 /**
  * A loading spinner component with animated background and fade-in effects.
@@ -31,40 +31,40 @@ import React from 'react';
  * @returns {React.JSX.Element} A memoized loading spinner component with animations
  */
 export const Loader = React.memo(
-  () => {
-    return (
-      <div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
-        <motion.div
-          className="flex flex-col items-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-        >
-          <div className="relative">
-            <motion.div
-              className="w-24 h-24 border-4 rounded-full border-primary-foreground/20"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-            />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 2,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: 'linear',
-                }}
-              >
-                <Loader2 className="w-12 h-12 text-primary-foreground" />
-              </motion.div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  },
-  () => true,
+	() => {
+		return (
+			<div className="relative flex flex-col items-center justify-center min-h-screen overflow-hidden">
+				<motion.div
+					className="flex flex-col items-center"
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+				>
+					<div className="relative">
+						<motion.div
+							className="w-24 h-24 border-4 rounded-full border-primary-foreground/20"
+							initial={{ opacity: 0, scale: 0.8 }}
+							animate={{ opacity: 1, scale: 1 }}
+							transition={{ duration: 0.5 }}
+						/>
+						<div className="absolute inset-0 flex items-center justify-center">
+							<motion.div
+								animate={{ rotate: 360 }}
+								transition={{
+									duration: 2,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "linear",
+								}}
+							>
+								<Loader2 className="w-12 h-12 text-primary-foreground" />
+							</motion.div>
+						</div>
+					</div>
+				</motion.div>
+			</div>
+		);
+	},
+	() => true,
 );
 
-Loader.displayName = 'Loader';
+Loader.displayName = "Loader";
