@@ -70,18 +70,19 @@ type HttpMethod = typeof HttpMethod.infer;
 
 // Query parameters type definition
 const QueryParams = type({
-	"[string]": "string | number | boolean | undefined | null | (string | number | boolean)[]"
+	"[string]":
+		"string | number | boolean | undefined | null | (string | number | boolean)[]",
 });
 
 /**
  * Represents a type-safe map of query parameters.
  * Each value can be a string, number, boolean, null, undefined, or an array of those types.
  */
-type QueryParams = typeof QueryParams.infer;
+export type QueryParams = typeof QueryParams.infer;
 
 // Request body type definition
 const RequestBody = type(
-	"Record<string, unknown> | unknown[] | string | number | boolean | null"
+	"Record<string, unknown> | unknown[] | string | number | boolean | null",
 );
 
 /**
@@ -92,7 +93,7 @@ type RequestBody = typeof RequestBody.infer;
 
 // Headers type definition
 const Headers = type({
-	"[string]": "string"
+	"[string]": "string",
 });
 
 /**
@@ -103,11 +104,11 @@ type Headers = typeof Headers.infer;
 // Fetcher options type definition
 const FetcherOptions = type({
 	"retries?": "number",
-	"retryDelay?": "number", 
-	"onError?": "(error: unknown) => void",
+	"retryDelay?": "number",
+	"onError?": "Function",
 	"timeout?": "number",
 	"headers?": Headers,
-	"schema?": "unknown"
+	"schema?": "unknown",
 });
 
 /**

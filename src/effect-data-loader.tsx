@@ -14,10 +14,10 @@ import { ClientError } from "./client-error.tsx";
 import {
 	FetcherError,
 	type FetcherOptions,
-	type QueryParams,
-	ValidationError,
 	fetcher,
 	get,
+	type QueryParams,
+	ValidationError,
 } from "./effect-fetcher.ts";
 import { Loader } from "./loader.tsx";
 import { parseCodePath } from "./util/utils.ts";
@@ -221,53 +221,59 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 		const headers = options?.headers;
 		const timeout = options?.timeout;
 		const schemaKey = schema ? `schema:${schema.toString()}` : null;
-		return ["dataloader", url, params, headers, timeout, schemaKey].filter(
-			Boolean,
-		);
+		const keyArray = [
+			"dataloader",
+			url,
+			params,
+			headers,
+			timeout,
+			schemaKey,
+		].filter(Boolean);
+		return keyArray;
 	}, [queryKey, url, params, options, schema]);
 
 	// Enhanced fetcher options with better defaults and schema support
-	const fetcherOptions = useMemo(
-		(): FetcherOptions<T> =>
-			({
-				retries: 3,
-				retryDelay: 1_000,
-				timeout: 30_000,
-				onError: (err: unknown) => {
-					const path = parseCodePath(url, fetcher);
-					console.error(`[DataLoader]: ${path}`);
+	const fetcherOptions = useMemo((): FetcherOptions<any> => {
+		const baseOptions = {
+			retries: 3,
+			retryDelay: 1_000,
+			timeout: 30_000,
+			onError: (err: unknown) => {
+				const path = parseCodePath(url, fetcher);
+				console.error(`[DataLoader]: ${path}`);
 
-					if (err instanceof FetcherError) {
-						console.error(
-							`[DataLoader]: Status ${err.status}`,
-							err.responseData,
-						);
-					} else if (err instanceof ValidationError) {
-						console.error(
-							`[DataLoader]: Validation failed - ${err.getProblemsString()}`,
-						);
-						console.error(`[DataLoader]: Invalid data:`, err.responseData);
-					} else {
-						console.error("[DataLoader]: Unexpected error", err);
-					}
+				if (err instanceof FetcherError) {
+					console.error(`[DataLoader]: Status ${err.status}`, err.responseData);
+				} else if (err instanceof ValidationError) {
+					console.error(
+						`[DataLoader]: Validation failed - ${err.getProblemsString()}`,
+					);
+					console.error(`[DataLoader]: Invalid data:`, err.responseData);
+				} else {
+					console.error("[DataLoader]: Unexpected error", err);
+				}
 
-					// Call user-provided error handler
-					if (onError && err instanceof Error) {
-						onError(err);
-					}
-				},
-				...(options || {}),
-				...(schema ? { schema } : {}),
-			}) as FetcherOptions<T>,
-		[url, options, onError, schema],
-	);
+				// Call user-provided error handler
+				if (onError && err instanceof Error) {
+					onError(err);
+				}
+			},
+			...(options || {}),
+		} as FetcherOptions<any>;
+
+		if (schema) {
+			return { ...baseOptions, schema };
+		}
+
+		return baseOptions;
+	}, [url, options, onError, schema]);
 
 	// Memoized query function with schema support
-	const queryFn = useCallback(async (): Promise<T> => {
+	const queryFn = useCallback(async () => {
 		try {
 			const effect = schema
 				? pipe(
-						get(url, fetcherOptions as any, params),
+						get(url, fetcherOptions, params),
 						Effect.provide(FetchHttpClient.layer),
 					)
 				: pipe(
@@ -285,7 +291,7 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 
 			// Call success callback
 			if (onSuccess) {
-				onSuccess(finalResult);
+				onSuccess(finalResult as any);
 			}
 
 			return finalResult;
@@ -310,15 +316,9 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 	}, [url, fetcherOptions, params, transform, onSuccess, schema]);
 
 	// Enhanced query options
-	const queryOptionsWithDefaults: UseSuspenseQueryOptions<
-		T,
-		Error,
-		T,
-		QueryKey
-	> = useMemo(
-		() => ({
-			// TODO: Check type assertions
-			queryKey: finalQueryKey as unknown as readonly unknown[],
+	const queryOptionsWithDefaults = useMemo(() => {
+		const baseOptions: UseSuspenseQueryOptions<any, Error, any, QueryKey> = {
+			queryKey: finalQueryKey as QueryKey,
 			queryFn,
 			staleTime: staleTime as number,
 			refetchInterval: refetchInterval as number,
@@ -345,28 +345,26 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 			retryDelay: (attemptIndex: number) =>
 				Math.min(1_000 * 2 ** attemptIndex, 30_000),
 			...(queryOptions || {}),
-		}),
-		[
-			finalQueryKey,
-			queryFn,
-			staleTime,
-			refetchInterval,
-			refetchOnWindowFocus,
-			refetchOnReconnect,
-			queryOptions,
-		],
+		};
+
+		return baseOptions;
+	}, [
+		finalQueryKey,
+		queryFn,
+		staleTime,
+		refetchInterval,
+		refetchOnWindowFocus,
+		refetchOnReconnect,
+		queryOptions,
+	]);
+
+	const { data, error, refetch, isRefetching } = useSuspenseQuery(
+		queryOptionsWithDefaults,
 	);
 
-	const { data, error, refetch, isRefetching } = useSuspenseQuery<
-		T,
-		Error,
-		T,
-		QueryKey
-	>(queryOptionsWithDefaults);
-
 	// Enhanced render props
-	const renderProps: DataLoaderRenderProps<T> = useMemo(
-		() => ({
+	const renderProps = useMemo(() => {
+		const props: DataLoaderRenderProps<any> = {
 			refetch: async () => {
 				await refetch();
 			},
@@ -375,12 +373,12 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 			invalidate: async () => {
 				await queryClient.invalidateQueries({ queryKey: finalQueryKey });
 			},
-			setQueryData: (newData: T | ((prev: T) => T)) => {
+			setQueryData: (newData: any) => {
 				queryClient.setQueryData(finalQueryKey, newData);
 			},
-		}),
-		[refetch, isRefetching, queryClient, finalQueryKey],
-	);
+		};
+		return props;
+	}, [refetch, isRefetching, queryClient, finalQueryKey]);
 
 	// Enhanced error component with retry capability and validation error support
 	const renderError = useCallback(
@@ -408,17 +406,12 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 			try {
 				const result =
 					children.length > 1
-						? (
-								children as (
-									data: T,
-									utils: DataLoaderRenderProps<T>,
-								) => React.ReactNode
-							)(data, renderProps)
-						: (children as (data: T) => React.ReactNode)(data);
+						? (children as any)(data, renderProps)
+						: (children as any)(data);
 				return result;
 			} catch {
 				// Fallback to simple call if inspection fails
-				return (children as (data: T) => React.ReactNode)(data);
+				return (children as any)(data);
 			}
 		}
 		return null;
@@ -438,10 +431,10 @@ DataLoader.displayName = "DataLoader";
  */
 export function useDataLoader<T = unknown>(
 	url: string,
-	options: Omit<
+	options?: Omit<
 		DataLoaderProps<T>,
 		"children" | "LoadingComponent" | "ErrorComponent"
-	> = {},
+	>,
 ): ReturnType<typeof useSuspenseQuery<T, Error, T, QueryKey>>;
 
 export function useDataLoader<S extends Type<any>>(
@@ -460,11 +453,11 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 		| Omit<
 				DataLoaderProps<T>,
 				"children" | "LoadingComponent" | "ErrorComponent"
-		>
+		  >
 		| Omit<
 				DataLoaderPropsWithSchema<S>,
 				"children" | "LoadingComponent" | "ErrorComponent"
-		>
+		  >
 	) & { schema?: S } = {},
 ) {
 	const {
@@ -484,41 +477,50 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 
 	const finalQueryKey = useMemo(() => {
 		if (queryKey) return queryKey;
-		const headers = fetcherOptions?.headers;
-		const timeout = fetcherOptions?.timeout;
+		const headers = (fetcherOptions as any)?.headers;
+		const timeout = (fetcherOptions as any)?.timeout;
 		const schemaKey = schema ? `schema:${schema.toString()}` : null;
-		return ["dataloader", url, params, headers, timeout, schemaKey].filter(
-			Boolean,
-		) as const;
+		const keyArray = [
+			"dataloader",
+			url,
+			params,
+			headers,
+			timeout,
+			schemaKey,
+		].filter(Boolean);
+		return keyArray;
 	}, [queryKey, url, params, fetcherOptions, schema]);
 
-	const enhancedFetcherOptions = useMemo(
-		(): FetcherOptions<T> =>
-			({
-				retries: 3,
-				retryDelay: 1_000,
-				timeout: 30_000,
-				onError: (err: unknown) => {
-					if (err instanceof ValidationError) {
-						console.error(
-							`[useDataLoader]: Validation failed - ${err.getProblemsString()}`,
-						);
-					}
+	const enhancedFetcherOptions = useMemo(() => {
+		const baseOptions: FetcherOptions<any> = {
+			retries: 3,
+			retryDelay: 1_000,
+			timeout: 30_000,
+			onError: (err: unknown) => {
+				if (err instanceof ValidationError) {
+					console.error(
+						`[useDataLoader]: Validation failed - ${err.getProblemsString()}`,
+					);
+				}
 
-					if (typeof onError === "function" && err instanceof Error) {
-						onError(err);
-					}
-				},
-				...(fetcherOptions || {}),
-				...(schema ? { schema } : {}),
-			}) as FetcherOptions<T>,
-		[fetcherOptions, onError, schema],
-	);
+				if (typeof onError === "function" && err instanceof Error) {
+					onError(err);
+				}
+			},
+			...(fetcherOptions || {}),
+		};
+
+		if (schema) {
+			return { ...baseOptions, schema };
+		}
+
+		return baseOptions;
+	}, [fetcherOptions, onError, schema]);
 
 	const queryFn = useCallback(async () => {
 		const effect = schema
 			? pipe(
-					get(url, enhancedFetcherOptions as any, params as QueryParams),
+					get(url, enhancedFetcherOptions, params as QueryParams),
 					Effect.provide(FetchHttpClient.layer),
 				)
 			: pipe(
@@ -531,20 +533,15 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 			transform && typeof transform === "function" ? transform(result) : result;
 
 		if (typeof onSuccess === "function") {
-			onSuccess(finalResult);
+			onSuccess(finalResult as any);
 		}
 
 		return finalResult;
 	}, [url, enhancedFetcherOptions, params, transform, onSuccess, schema]);
 
-	const queryOptionsWithDefaults: UseSuspenseQueryOptions<
-		T,
-		Error,
-		T,
-		QueryKey
-	> = useMemo(
-		() => ({
-			queryKey: finalQueryKey as unknown as readonly unknown[],
+	const queryOptionsWithDefaults = useMemo(() => {
+		const baseOptions: UseSuspenseQueryOptions<any, Error, any, QueryKey> = {
+			queryKey: finalQueryKey as QueryKey,
 			queryFn,
 			staleTime: staleTime as number,
 			refetchInterval: refetchInterval as number,
@@ -565,17 +562,18 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 			retryDelay: (attemptIndex: number) =>
 				Math.min(1_000 * 2 ** attemptIndex, 30_000),
 			...(queryOptions || {}),
-		}),
-		[
-			finalQueryKey,
-			queryFn,
-			staleTime,
-			refetchInterval,
-			refetchOnWindowFocus,
-			refetchOnReconnect,
-			queryOptions,
-		],
-	);
+		};
+
+		return baseOptions;
+	}, [
+		finalQueryKey,
+		queryFn,
+		staleTime,
+		refetchInterval,
+		refetchOnWindowFocus,
+		refetchOnReconnect,
+		queryOptions,
+	]);
 
 	return useSuspenseQuery(queryOptionsWithDefaults);
 }
