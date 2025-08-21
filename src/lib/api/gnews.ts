@@ -51,7 +51,7 @@ class GNewsAPI {
 	private baseUrl: string = "https://gnews.io/api/v4";
 
 	constructor() {
-		const apiKey = process.env.GNEWS_API_KEY;
+		const apiKey = import.meta.env.VITE_GNEWS_API_KEY;
 		if (!apiKey) {
 			throw new Error("GNEWS_API_KEY environment variable is required");
 		}
@@ -171,70 +171,70 @@ class GNewsAPI {
 	}
 }
 
-// Test function
-async function testGNewsAPI() {
-  try {
-    const gnews = new GNewsAPI();
+// // Test function
+// async function testGNewsAPI() {
+//   try {
+//     const gnews = new GNewsAPI();
 
-    console.log('🔍 Testing GNews API...\n');
+//     console.log('🔍 Testing GNews API...\n');
 
-    // Test 1: Search for specific topic
-    console.log('1️⃣ Testing search endpoint...');
-    const searchResults = await gnews.search({
-      q: 'artificial intelligence',
-      lang: 'en',
-      max: 5,
-      sortby: 'publishedAt',
-    });
+//     // Test 1: Search for specific topic
+//     console.log('1️⃣ Testing search endpoint...');
+//     const searchResults = await gnews.search({
+//       q: 'artificial intelligence',
+//       lang: 'en',
+//       max: 5,
+//       sortby: 'publishedAt',
+//     });
 
-    console.log(`Found ${searchResults.totalArticles} articles about AI`);
-    gnews.displayArticles(searchResults.articles, 3);
+//     console.log(`Found ${searchResults.totalArticles} articles about AI`);
+//     gnews.displayArticles(searchResults.articles, 3);
 
-    // Test 2: Get top headlines
-    console.log('\n2️⃣ Testing top headlines endpoint...');
-    const headlines = await gnews.getTopHeadlines({
-      category: 'technology',
-      lang: 'en',
-      max: 5,
-    });
+//     // Test 2: Get top headlines
+//     console.log('\n2️⃣ Testing top headlines endpoint...');
+//     const headlines = await gnews.getTopHeadlines({
+//       category: 'technology',
+//       lang: 'en',
+//       max: 5,
+//     });
 
-    console.log(`Found ${headlines.totalArticles} top technology headlines`);
-    gnews.displayArticles(headlines.articles, 3);
+//     console.log(`Found ${headlines.totalArticles} top technology headlines`);
+//     gnews.displayArticles(headlines.articles, 3);
 
-    // Test 3: Search with date range (last 7 days)
-    console.log('\n3️⃣ Testing search with date range...');
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+//     // Test 3: Search with date range (last 7 days)
+//     console.log('\n3️⃣ Testing search with date range...');
+//     const sevenDaysAgo = new Date();
+//     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const recentNews = await gnews.search({
-      q: 'climate change',
-      lang: 'en',
-      from: sevenDaysAgo.toISOString().split('T')[0],
-      max: 3,
-      sortby: 'publishedAt',
-    });
+//     const recentNews = await gnews.search({
+//       q: 'climate change',
+//       lang: 'en',
+//       from: sevenDaysAgo.toISOString().split('T')[0],
+//       max: 3,
+//       sortby: 'publishedAt',
+//     });
 
-    console.log(
-      `Found ${recentNews.totalArticles} recent articles about climate change`
-    );
-    gnews.displayArticles(recentNews.articles, 2);
+//     console.log(
+//       `Found ${recentNews.totalArticles} recent articles about climate change`
+//     );
+//     gnews.displayArticles(recentNews.articles, 2);
 
-    console.log('\n✅ All tests completed successfully!');
-  } catch (error) {
-    console.error('❌ Test failed:', error);
+//     console.log('\n✅ All tests completed successfully!');
+//   } catch (error) {
+//     console.error('❌ Test failed:', error);
 
-    if (error instanceof Error) {
-      if (error.message.includes('GNEWS_API_KEY')) {
-        console.log(
-          '\n💡 Make sure to set your GNEWS_API_KEY environment variable'
-        );
-        console.log(
-          '   You can create a .env file with: GNEWS_API_KEY=your_api_key_here'
-        );
-      }
-    }
-  }
-}
+//     if (error instanceof Error) {
+//       if (error.message.includes('GNEWS_API_KEY')) {
+//         console.log(
+//           '\n💡 Make sure to set your GNEWS_API_KEY environment variable'
+//         );
+//         console.log(
+//           '   You can create a .env file with: GNEWS_API_KEY=your_api_key_here'
+//         );
+//       }
+//     }
+//   }
+// }
 
 export { Article, GNewsAPI, GNewsResponse };
-(async () => console.log(await testGNewsAPI().catch(console.error)))()
+// (async () => console.log(await testGNewsAPI().catch(console.error)))()

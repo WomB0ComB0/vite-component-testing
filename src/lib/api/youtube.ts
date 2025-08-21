@@ -3,7 +3,7 @@ import { FetchHttpClient } from "@effect/platform";
 import { type } from "arktype";
 import { Effect, pipe } from "effect";
 
-const YOUTUBE_API_KEY = process.env.GOOGLE_API_KEY;
+const YOUTUBE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 
 // ArkType schema for the YouTube API Search response
 const ThumbnailDetail = type({
@@ -118,31 +118,31 @@ export const searchYouTube = async (
 	}
 };
 
-// simple “main” using Effect to provide the fetch layer once
-const program = Effect.gen(function* () {
-	const query = "TypeScript Effect tutorial";
+// // simple “main” using Effect to provide the fetch layer once
+// const program = Effect.gen(function* () {
+// 	const query = "TypeScript Effect tutorial";
 
-	const firstPage = yield* Effect.tryPromise({
-		try: () => searchYouTube(query),
-		catch: (e) => new Error(`search failed: ${String(e)}`),
-	});
+// 	const firstPage = yield* Effect.tryPromise({
+// 		try: () => searchYouTube(query),
+// 		catch: (e) => new Error(`search failed: ${String(e)}`),
+// 	});
 
-	// Print the top results
-	for (const item of firstPage.items) {
-		// item.snippet, item.id.videoId, etc. come fully typed via ArkType inference
-		console.log(
-			`${item.snippet.title} — https://www.youtube.com/watch?v=${item.id.videoId}`
-		);
-	}
+// 	// Print the top results
+// 	for (const item of firstPage.items) {
+// 		// item.snippet, item.id.videoId, etc. come fully typed via ArkType inference
+// 		console.log(
+// 			`${item.snippet.title} — https://www.youtube.com/watch?v=${item.id.videoId}`
+// 		);
+// 	}
 
-	return firstPage.nextPageToken;
-}).pipe(
-	// Provide the platform HTTP client once at the edge
-	Effect.provide(FetchHttpClient.layer)
-);
+// 	return firstPage.nextPageToken;
+// }).pipe(
+// 	// Provide the platform HTTP client once at the edge
+// 	Effect.provide(FetchHttpClient.layer)
+// );
 
-// Run as a Promise (handy in Bun/Node scripts)
-Effect.runPromise(program).catch((err) => {
-	console.error(err);
-	process.exit(1);
-});
+// // Run as a Promise (handy in Bun/Node scripts)
+// Effect.runPromise(program).catch((err) => {
+// 	console.error(err);
+// 	process.exit(1);
+// });

@@ -132,7 +132,7 @@ class MediastackAPI {
 			}
 		}
 
-		this.apiKey = apiKey || process.env.ARTICLE_API_KEY || "";
+		this.apiKey = apiKey || import.meta.env.VITE_ARTICLE_API_KEY || "";
 		if (!this.apiKey) {
 			throw new Error(
 				"API key is required. Set ARTICLE_API_KEY environment variable or pass it to constructor.",
@@ -501,81 +501,81 @@ async function freePlanExamples() {
 }
 
 // Usage examples with rate limiting
-async function examples() {
-	try {
-		// Initialize with free plan settings (more conservative)
-		const api = new MediastackAPI(undefined, {
-			isFreePlan: true,
-			minRequestInterval: 3000, // 3 seconds between requests for free plan
-			maxRequestsPerMinute: 20, // Conservative limit
-		});
+// async function examples() {
+// 	try {
+// 		// Initialize with free plan settings (more conservative)
+// 		const api = new MediastackAPI(undefined, {
+// 			isFreePlan: true,
+// 			minRequestInterval: 3000, // 3 seconds between requests for free plan
+// 			maxRequestsPerMinute: 20, // Conservative limit
+// 		});
 
-		console.log("🚀 Starting API examples with rate limiting...\n");
+// 		console.log("🚀 Starting API examples with rate limiting...\n");
 
-		// Example 1: Get latest news
-		console.log("=== Latest News ===");
-		const latestNews = await api.getNews({ limit: 5 });
-		console.log(`Found ${latestNews.data.length} articles:`);
-		latestNews.data.forEach((article, index) => {
-			console.log(`${index + 1}. ${article.title} - ${article.source}`);
-		});
+// 		// Example 1: Get latest news
+// 		console.log("=== Latest News ===");
+// 		const latestNews = await api.getNews({ limit: 5 });
+// 		console.log(`Found ${latestNews.data.length} articles:`);
+// 		latestNews.data.forEach((article, index) => {
+// 			console.log(`${index + 1}. ${article.title} - ${article.source}`);
+// 		});
 
-		// Check if we should continue
-		if (api.isApproachingRateLimit()) {
-			console.log("⚠️  Approaching rate limit, stopping examples early");
-			return;
-		}
+// 		// Check if we should continue
+// 		if (api.isApproachingRateLimit()) {
+// 			console.log("⚠️  Approaching rate limit, stopping examples early");
+// 			return;
+// 		}
 
-		// Example 2: Search for specific keywords (with longer delay)
-		console.log('\n=== Search for "technology" ===');
-		const techNews = await api.searchNews("technology", { limit: 3 });
-		techNews.data.forEach((article, index) => {
-			console.log(`${index + 1}. ${article.title}`);
-		});
+// 		// Example 2: Search for specific keywords (with longer delay)
+// 		console.log('\n=== Search for "technology" ===');
+// 		const techNews = await api.searchNews("technology", { limit: 3 });
+// 		techNews.data.forEach((article, index) => {
+// 			console.log(`${index + 1}. ${article.title}`);
+// 		});
 
-		// Show stats
-		const stats = api.getStats();
-		console.log(`\n📊 API Stats: ${stats.requestCount} requests made`);
+// 		// Show stats
+// 		const stats = api.getStats();
+// 		console.log(`\n📊 API Stats: ${stats.requestCount} requests made`);
 
-		// Only continue if we haven't hit limits
-		if (!api.isApproachingRateLimit()) {
-			console.log("\n=== Getting Sources (final request) ===");
-			try {
-				const sources = await api.getSources({ limit: 5 });
-				if (sources.data && sources.data.length > 0) {
-					sources.data.slice(0, 3).forEach((source, index) => {
-						console.log(
-							`${index + 1}. ${source.name} (${source.country.toUpperCase()}) - ${source.category}`,
-						);
-					});
-				} else {
-					console.log("No sources returned (might be a plan limitation)");
-				}
-			} catch (sourceError) {
-				console.log(
-					"⚠️  Sources endpoint not available (might require paid plan)",
-				);
-				console.log("   Continuing with news-only examples...");
-			}
-		}
+// 		// Only continue if we haven't hit limits
+// 		if (!api.isApproachingRateLimit()) {
+// 			console.log("\n=== Getting Sources (final request) ===");
+// 			try {
+// 				const sources = await api.getSources({ limit: 5 });
+// 				if (sources.data && sources.data.length > 0) {
+// 					sources.data.slice(0, 3).forEach((source, index) => {
+// 						console.log(
+// 							`${index + 1}. ${source.name} (${source.country.toUpperCase()}) - ${source.category}`,
+// 						);
+// 					});
+// 				} else {
+// 					console.log("No sources returned (might be a plan limitation)");
+// 				}
+// 			} catch (sourceError) {
+// 				console.log(
+// 					"⚠️  Sources endpoint not available (might require paid plan)",
+// 				);
+// 				console.log("   Continuing with news-only examples...");
+// 			}
+// 		}
 
-		const finalStats = api.getStats();
-		console.log(
-			`\n✅ Completed safely with ${finalStats.requestCount} total requests`,
-		);
-	} catch (error) {
-		console.error("❌ Error:", error instanceof Error ? error.message : error);
+// 		const finalStats = api.getStats();
+// 		console.log(
+// 			`\n✅ Completed safely with ${finalStats.requestCount} total requests`,
+// 		);
+// 	} catch (error) {
+// 		console.error("❌ Error:", error instanceof Error ? error.message : error);
 
-		// Provide helpful advice for rate limit errors
-		if (error instanceof Error && error.message.includes("Rate limit")) {
-			console.log("\n💡 Tips for free plan users:");
-			console.log("   - Wait a few minutes before trying again");
-			console.log("   - Make fewer concurrent requests");
-			console.log("   - Cache results to reduce API calls");
-			console.log("   - Consider combining multiple queries into one");
-		}
-	}
-}
+// 		// Provide helpful advice for rate limit errors
+// 		if (error instanceof Error && error.message.includes("Rate limit")) {
+// 			console.log("\n💡 Tips for free plan users:");
+// 			console.log("   - Wait a few minutes before trying again");
+// 			console.log("   - Make fewer concurrent requests");
+// 			console.log("   - Cache results to reduce API calls");
+// 			console.log("   - Consider combining multiple queries into one");
+// 		}
+// 	}
+// }
 
 // Helper functions with validation
 export function formatDate(date: Date): string {

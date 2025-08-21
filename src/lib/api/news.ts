@@ -1,6 +1,5 @@
-// news.ts (fixed)
 import { type, Type } from "arktype";
-const NewsAPI = require("newsapi");
+import NewsAPI  from "newsapi";
 
 // --- ArkType Schemas ---
 const Article = type({
@@ -55,7 +54,7 @@ interface TestConfig {
 const TEST_CONFIG: TestConfig = { delayBetweenRequests: 1000, maxArticlesToShow: 3 };
 
 // --- API Initialization ---
-const NEWS_API_KEY = Bun.env.NEWS_API_KEY;
+const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
 if (!NEWS_API_KEY) throw new Error("NEWS_API_KEY not set");
 const newsapi = new NewsAPI(NEWS_API_KEY);
 
@@ -265,24 +264,24 @@ export const individualTests = {
   },
 };
 
-// --- Main (unchanged) ---
-async function main(): Promise<void> {
-  if (NEWS_API_KEY === "your_api_key_here") {
-    console.log("⚠️ Please set your NEWS_API_KEY environment variable.");
-    return;
-  }
+// // --- Main (unchanged) ---
+// async function main(): Promise<void> {
+//   if (NEWS_API_KEY === "your_api_key_here") {
+//     console.log("⚠️ Please set your NEWS_API_KEY environment variable.");
+//     return;
+//   }
 
-  await runAllTests();
-  await performanceTest();
+//   await runAllTests();
+//   await performanceTest();
 
-  console.log("\n🎯 Running Individual Tests");
-  await individualTests.testHeadlineSearch("climate change");
-  await delay(TEST_CONFIG.delayBetweenRequests);
-  await individualTests.testSource("techcrunch");
-  await delay(TEST_CONFIG.delayBetweenRequests);
-  await individualTests.testDateRange("cryptocurrency", 3);
-}
+//   console.log("\n🎯 Running Individual Tests");
+//   await individualTests.testHeadlineSearch("climate change");
+//   await delay(TEST_CONFIG.delayBetweenRequests);
+//   await individualTests.testSource("techcrunch");
+//   await delay(TEST_CONFIG.delayBetweenRequests);
+//   await individualTests.testDateRange("cryptocurrency", 3);
+// }
 
 export { newsapi };
 
-(async () =>  console.log(await main().catch(console.error)))()
+// (async () =>  console.log(await main().catch(console.error)))()

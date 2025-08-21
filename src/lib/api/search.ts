@@ -1,136 +1,111 @@
+// search.ts
+import { get } from "@/effect-fetcher";
+import { FetchHttpClient } from "@effect/platform";
 import { type } from "arktype";
-import { customsearch_v1 } from "googleapis";
+import { Effect, pipe } from "effect";
 
-const SearchRecommendation = type({
-	info: {
-		totalResults: "string",
-		searchTime: "number",
-		formattedTotalResults: "string",
-		formattedSearchTime: "string",
-	},
-	items: [
-		{
-			link: "string",
-			title: "string",
-			snippet: "string",
-			"thumbnail?": {
-				src: "string",
-				width: "string",
-				height: "string",
-			},
-		},
-		"[]",
-	],
+// ---- 1) Raw Google CSE schema (minimal fields we access) ----
+export const RawCse = type({
+  "searchInformation?": {
+    "totalResults?": "string",
+    "searchTime?": "number",
+    "formattedTotalResults?": "string",
+    "formattedSearchTime?": "string",
+  },
+  "items?": [{
+    "link?": "string",
+    "title?": "string",
+    "snippet?": "string",
+    "pagemap?": {
+      "cse_thumbnail?": [{
+        "src?": "string",
+        "width?": "string | number",
+        "height?": "string | number",
+      }, "[]"]
+    }
+  }, "[]"]
 });
+export type TRawCse = typeof RawCse.infer;
 
-// Infer the TypeScript type from the ArkType schema.
-type SearchRecommendation = typeof SearchRecommendation.infer;
-
-const GOOGLE_SEARCH_API_KEY = Bun.env.GOOGLE_API_KEY;
-const GOOGLE_SEARCH_ENGINE_ID = Bun.env.GOOGLE_SEARCH_ENGINE_ID;
-
-const customSearch = new customsearch_v1.Customsearch({
-	key: GOOGLE_SEARCH_API_KEY,
+// ---- 2) Your trimmed, validated output shape ----
+export const SearchRecommendation = type({
+  info: {
+    totalResults: "string",
+    searchTime: "number",
+    formattedTotalResults: "string",
+    formattedSearchTime: "string",
+  },
+  items: [{
+    link: "string",
+    title: "string",
+    snippet: "string",
+    "thumbnail?": { src: "string", width: "string", height: "string" }
+  }, "[]"]
 });
+export type TSearchRecommendation = typeof SearchRecommendation.infer;
 
-/**
- * Truncates a query string to a maximum length
- */
-function truncateQuery(query: string, maxLength = 100): string {
-	if (query.length <= maxLength) return query;
-	return query.substring(0, maxLength - 3) + "...";
-}
+// ---- 3) API + env ----
+const CSE_ENDPOINT = "https://customsearch.googleapis.com/customsearch/v1";
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY!;
+const CX = import.meta.env.VITE_GOOGLE_SEARCH_ENGINE_ID!; // Vite only exposes VITE_* client-side. :contentReference[oaicite:0]{index=0}
 
-/**
- * Performs a Google Custom Search and validates the response with ArkType.
- */
-export const search = async (query: string): Promise<SearchRecommendation> => {
-	if (!GOOGLE_SEARCH_API_KEY || !GOOGLE_SEARCH_ENGINE_ID) {
-		throw new Error("Google Search API key or Search Engine ID is missing");
-	}
+const truncate = (q: string, max = 100) => (q.length <= max ? q : q.slice(0, max - 3) + "...");
 
-	try {
-		const truncatedQuery = truncateQuery(query);
-		const res = await customSearch.cse.list({
-			key: GOOGLE_SEARCH_API_KEY,
-			cx: GOOGLE_SEARCH_ENGINE_ID,
-			q: truncatedQuery,
-		});
-
-		const rawData = res.data;
-
-		// Transform the raw, unpredictable API response into a clean, structured object.
-		const transformedData = {
-			info: {
-				totalResults: rawData.searchInformation?.totalResults ?? "0",
-				searchTime: rawData.searchInformation?.searchTime ?? 0,
-				formattedTotalResults: rawData.searchInformation?.formattedTotalResults ?? "0",
-				formattedSearchTime: rawData.searchInformation?.formattedSearchTime ?? "0",
-			},
-			items: (rawData.items ?? []).map((item) => {
-				const t = item.pagemap?.cse_thumbnail?.[0];
-				return {
-					link: item.link ?? "",
-					title: item.title ?? "No title",
-					snippet: item.snippet ?? "No snippet available",
-					// 👉 Only add the key if we actually have a thumbnail
-					...(t?.src
-						? {
-							thumbnail: {
-								src: String(t.src),
-								width: String(t.width ?? ""),
-								height: String(t.height ?? ""),
-							},
-						}
-						: {}),
-				};
-			}),
-		};
-
-		// Validate the transformed data against the ArkType schema at runtime.
-		const data = SearchRecommendation.assert(transformedData);
-
-		if (!data) {
-			// If validation fails, throw an error with details.
-			throw new Error(`Invalid search response structure`);
-		}
-
-		// Return the validated, typesafe data.
-		return data;
-	} catch (error) {
-		throw new Error(
-			`Error performing search: ${Error.isError(error) ? error.message : String(error)}`,
-		);
-	}
+type SearchParams = {
+  q: string; num?: number; start?: number; safe?: "off" | "active";
+  lr?: string; siteSearch?: string; fields?: string;
 };
 
-// Helper to log and exit gracefully
-// async function runTest() {
-// 	const query = "OpenAI GPT-4 capabilities";
-// 	console.log(`\nRunning search for: "${query}"\n`);
+// ---- 4) Main: validate raw -> map -> assert trimmed ----
+export async function search(query: string, opts: Omit<SearchParams, "q"> = {}): Promise<TSearchRecommendation> {
+  if (!API_KEY || !CX) throw new Error("Google API key or CX missing");
 
-// 	try {
-// 		const result = await search(query);
+  const params: Record<string, string | number | undefined> = {
+    key: API_KEY,
+    cx: CX,
+    q: truncate(query),
+    num: opts.num ?? 10,
+    start: opts.start,
+    safe: opts.safe,
+    lr: opts.lr,
+    siteSearch: opts.siteSearch,
+    fields:
+      opts.fields ??
+      "searchInformation(totalResults,searchTime,formattedTotalResults,formattedSearchTime),items(link,title,snippet,pagemap/cse_thumbnail)"
+  };
 
-// 		// If this runs, `result` is fully validated
-// 		console.log("✅ Validation passed. Parsed output:");
-// 		console.log("Info:", result.info);
-// 		console.log("Number of items:", result.items.length);
+  // Validate the RAW Google response first
+  const effect = pipe(
+    get(CSE_ENDPOINT, { schema: RawCse }, params),
+    Effect.provide(FetchHttpClient.layer)
+  );
 
-// 		result.items.forEach((it, idx) => {
-// 			console.log(`\nResult #${idx + 1}`);
-// 			console.log("Title: ", it.title);
-// 			console.log("Link:  ", it.link);
-// 			console.log("Snippet:", it.snippet);
-// 			if (it.thumbnail) {
-// 				console.log("Thumbnail:", it.thumbnail.src);
-// 			}
-// 		});
-// 	} catch (err) {
-// 		console.error("⛔ Search request failed or validation error:");
-// 		console.error(err);
-// 		process.exit(1); // Non-zero exit code for CI/test runners
-// 	}
-// }
+  const raw: TRawCse = await Effect.runPromise(effect);
 
-// runTest();
+  const transformed = {
+    info: {
+      totalResults: raw.searchInformation?.totalResults ?? "0",
+      searchTime: raw.searchInformation?.searchTime ?? 0,
+      formattedTotalResults: raw.searchInformation?.formattedTotalResults ?? "0",
+      formattedSearchTime: raw.searchInformation?.formattedSearchTime ?? "0",
+    },
+    items: (raw.items ?? []).map((it) => {
+      const t = it?.pagemap?.cse_thumbnail?.[0];
+      return {
+        link: it?.link ?? "",
+        title: it?.title ?? "No title",
+        snippet: it?.snippet ?? "No snippet available",
+        ...(t?.src ? {
+          thumbnail: {
+            src: String(t.src),
+            width: String(t.width ?? ""),
+            height: String(t.height ?? "")
+          }
+        } : {})
+      };
+    })
+  };
+
+  // Final runtime check of the trimmed shape
+  return SearchRecommendation.assert(transformed);
+}

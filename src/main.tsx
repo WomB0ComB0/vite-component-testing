@@ -22,7 +22,37 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
 				<Toaster />
 				<Router>
 					<Routes>
-						<Route path="/" element={<Example />} />
+						<Route
+							path="/"
+							element={
+								<SecureImageUpload
+									onUpload={async (images) => {
+										for (const img of images) {
+											const fd = new FormData();
+											fd.append('file', img.file, img.file.name);
+
+											const res = await fetch('http://localhost:3000/api/reverse-image', {
+												method: 'POST',
+												body: fd,
+											});
+
+											if (!res.ok) {
+												const err = await res.json().catch(() => ({}));
+												console.error('Vision error', err);
+												continue;
+											}
+
+											const { data } = await res.json();
+											console.log('Web Detection for', img.file.name, data);
+
+											// TODO: pipe `data` into your UI:
+											// - List `pagesWithMatchingImages`
+											// - Show `fullMatchingImages` thumbnails
+											// - Use `webEntities` as tags/labels
+										}
+									}}
+								/>}
+						/>
 						<Route path="*" element={<NotFound />} />
 					</Routes>
 				</Router>

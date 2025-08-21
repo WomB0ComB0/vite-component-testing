@@ -707,95 +707,95 @@ export function createFDCClient(
 }
 
 // Example usage with improved error handling and validation
-async function testFDCClient() {
-	try {
-		const client = createFDCClient(process.env.FOOD_API_KEY || "your-api-key");
+// async function testFDCClient() {
+// 	try {
+// 		const client = createFDCClient(process.env.FOOD_API_KEY || "your-api-key");
 
-		// Search for foods
-		console.log("=== Searching for Cheddar cheese ===");
-		const searchResults = await client.searchFoods({
-			query: "Cheddar cheese",
-			dataType: ["Branded"],
-			pageSize: 25,
-		});
-		console.log("Search Results:", searchResults.foods.length, "foods found");
-		console.log("Total hits:", searchResults.totalHits);
+// 		// Search for foods
+// 		console.log("=== Searching for Cheddar cheese ===");
+// 		const searchResults = await client.searchFoods({
+// 			query: "Cheddar cheese",
+// 			dataType: ["Branded"],
+// 			pageSize: 25,
+// 		});
+// 		console.log("Search Results:", searchResults.foods.length, "foods found");
+// 		console.log("Total hits:", searchResults.totalHits);
 
-		// Get specific food details (using FDC ID from search results)
-		if (searchResults.foods.length > 0) {
-			console.log("\n=== Getting food details ===");
-			const firstFood = searchResults.foods[0];
-			const food = await client.getFood(firstFood.fdcId);
-			console.log("Food Details:", food.description);
-			console.log("Nutrients count:", food.foodNutrients.length);
+// 		// Get specific food details (using FDC ID from search results)
+// 		if (searchResults.foods.length > 0) {
+// 			console.log("\n=== Getting food details ===");
+// 			const firstFood = searchResults.foods[0];
+// 			const food = await client.getFood(firstFood.fdcId);
+// 			console.log("Food Details:", food.description);
+// 			console.log("Nutrients count:", food.foodNutrients.length);
 
-			// Get multiple foods
-			console.log("\n=== Getting multiple foods ===");
-			const foods = await client.getFoods({
-				fdcIds: [firstFood.fdcId],
-				format: "full",
-			});
-			console.log("Multiple Foods:", foods.length);
-		}
+// 			// Get multiple foods
+// 			console.log("\n=== Getting multiple foods ===");
+// 			const foods = await client.getFoods({
+// 				fdcIds: [firstFood.fdcId],
+// 				format: "full",
+// 			});
+// 			console.log("Multiple Foods:", foods.length);
+// 		}
 
-		// Try the foods list endpoint (might not be available)
-		console.log("\n=== Trying getFoodsList ===");
-		const foodsList = await client.getFoodsList({
-			dataType: ["Foundation"],
-			pageSize: 50,
-			pageNumber: 1,
-		});
+// 		// Try the foods list endpoint (might not be available)
+// 		console.log("\n=== Trying getFoodsList ===");
+// 		const foodsList = await client.getFoodsList({
+// 			dataType: ["Foundation"],
+// 			pageSize: 50,
+// 			pageNumber: 1,
+// 		});
 
-		if (foodsList) {
-			console.log("Foods List:", foodsList.foods?.length, "foods");
-			console.log("Current page:", foodsList.currentPage);
-		} else {
-			console.log("Foods List endpoint not available, trying alternative...");
+// 		if (foodsList) {
+// 			console.log("Foods List:", foodsList.foods?.length, "foods");
+// 			console.log("Current page:", foodsList.currentPage);
+// 		} else {
+// 			console.log("Foods List endpoint not available, trying alternative...");
 
-			// Use alternative method
-			console.log("\n=== Using getFoodsListAlternative ===");
-			const alternativeList = await client.getFoodsListAlternative({
-				dataType: ["Foundation"],
-				pageSize: 10,
-				pageNumber: 1,
-			});
-			console.log(
-				"Alternative Foods List:",
-				alternativeList.foods.length,
-				"foods",
-			);
-		}
+// 			// Use alternative method
+// 			console.log("\n=== Using getFoodsListAlternative ===");
+// 			const alternativeList = await client.getFoodsListAlternative({
+// 				dataType: ["Foundation"],
+// 				pageSize: 10,
+// 				pageNumber: 1,
+// 			});
+// 			console.log(
+// 				"Alternative Foods List:",
+// 				alternativeList.foods.length,
+// 				"foods",
+// 			);
+// 		}
 
-		// Find a specific food (convenience method)
-		console.log("\n=== Finding apple ===");
-		const apple = await client.findFood("apple", ["Foundation"]);
-		console.log("Apple:", apple?.description);
+// 		// Find a specific food (convenience method)
+// 		console.log("\n=== Finding apple ===");
+// 		const apple = await client.findFood("apple", ["Foundation"]);
+// 		console.log("Apple:", apple?.description);
 
-		// Get nutrients for a food
-		if (apple) {
-			console.log("\n=== Getting nutrients ===");
-			const nutrients = await client.getFoodNutrients(apple.fdcId, [203, 204]); // protein, fat
-			console.log("Nutrients:", nutrients.length);
-			nutrients.forEach((nutrient) => {
-				console.log(
-					`- ${nutrient.nutrient.name}: ${nutrient.amount} ${nutrient.nutrient.unitName}`,
-				);
-			});
-		}
-	} catch (error) {
-		if (error instanceof FDCValidationError) {
-			console.error("FDC Validation Error:", error.message);
-			console.error("Validation details:", error.response);
-		} else if (error instanceof FDCApiError) {
-			console.error("FDC API Error:", error.message, "Status:", error.status);
-			if (error.response) {
-				console.error("Response:", error.response);
-			}
-		} else {
-			console.error("Unexpected error:", error);
-		}
-	}
-}
+// 		// Get nutrients for a food
+// 		if (apple) {
+// 			console.log("\n=== Getting nutrients ===");
+// 			const nutrients = await client.getFoodNutrients(apple.fdcId, [203, 204]); // protein, fat
+// 			console.log("Nutrients:", nutrients.length);
+// 			nutrients.forEach((nutrient) => {
+// 				console.log(
+// 					`- ${nutrient.nutrient.name}: ${nutrient.amount} ${nutrient.nutrient.unitName}`,
+// 				);
+// 			});
+// 		}
+// 	} catch (error) {
+// 		if (error instanceof FDCValidationError) {
+// 			console.error("FDC Validation Error:", error.message);
+// 			console.error("Validation details:", error.response);
+// 		} else if (error instanceof FDCApiError) {
+// 			console.error("FDC API Error:", error.message, "Status:", error.status);
+// 			if (error.response) {
+// 				console.error("Response:", error.response);
+// 			}
+// 		} else {
+// 			console.error("Unexpected error:", error);
+// 		}
+// 	}
+// }
 
 // Export all types and schemas for external use
 export {
