@@ -16,7 +16,6 @@
 
 import { type } from "arktype";
 
-// ArkType schemas for runtime validation
 const PaginationInfo = type({
 	limit: "number",
 	offset: "number",
@@ -64,15 +63,12 @@ const APIError = type({
 	},
 });
 
-// Available categories with ArkType union
 const NewsCategory = type(
 	"'general' | 'business' | 'entertainment' | 'health' | 'science' | 'sports' | 'technology'",
 );
 
-// Sort options
 const SortOption = type("'published_desc' | 'popularity'");
 
-// Request parameters with optional fields
 const NewsRequestParams = type({
 	"sources?": "string",
 	"categories?": "string",
@@ -100,7 +96,6 @@ const ConstructorOptions = type({
 	"isFreePlan?": "boolean",
 });
 
-// Type inference from ArkType schemas
 type PaginationInfo = typeof PaginationInfo.infer;
 type NewsArticle = typeof NewsArticle.infer;
 type NewsSource = typeof NewsSource.infer;
@@ -122,7 +117,6 @@ class MediastackAPI {
 	private readonly maxRequestsPerMinute: number;
 
 	constructor(apiKey?: string, options?: ConstructorOptions) {
-		// Validate constructor options
 		if (options !== undefined) {
 			const validationResult = ConstructorOptions(options);
 			if (validationResult instanceof type.errors) {
@@ -139,7 +133,6 @@ class MediastackAPI {
 			);
 		}
 
-		// Default to free plan limits if not specified
 		const isFreePlan = options?.isFreePlan ?? true;
 
 		// Free plan: be more conservative with rate limits
@@ -184,7 +177,6 @@ class MediastackAPI {
 		params: Record<string, any> = {},
 		responseSchema: any,
 	): Promise<T> {
-		// Apply rate limiting
 		await this.rateLimitDelay();
 
 		const url = this.buildUrl(endpoint, params);
@@ -194,7 +186,6 @@ class MediastackAPI {
 			const data = await response.json();
 
 			if (!response.ok) {
-				// Validate error response
 				const errorValidation = APIError(data);
 				if (errorValidation instanceof type.errors) {
 					throw new Error(
@@ -204,7 +195,6 @@ class MediastackAPI {
 
 				const error = errorValidation as APIError;
 
-				// Handle rate limit errors specifically
 				if (error.error.code === "rate_limit_reached") {
 					console.error("❌ Rate limit exceeded. Consider:");
 					console.error("   - Reducing request frequency");
@@ -215,7 +205,6 @@ class MediastackAPI {
 					);
 				}
 
-				// Handle validation errors
 				if (error.error.code === "validation_error") {
 					console.error("❌ Validation error. This might be due to:");
 					console.error("   - Invalid parameters for your plan level");
@@ -224,7 +213,6 @@ class MediastackAPI {
 					throw new Error(`Validation error: ${error.error.message}`);
 				}
 
-				// Handle function access restrictions
 				if (error.error.code === "function_access_restricted") {
 					console.error("❌ Feature not available on your current plan");
 					throw new Error(`Feature not available: ${error.error.message}`);
@@ -235,7 +223,6 @@ class MediastackAPI {
 				);
 			}
 
-			// Validate successful response against schema
 			const validationResult = responseSchema(data);
 			if (validationResult instanceof type.errors) {
 				console.warn(
@@ -243,25 +230,25 @@ class MediastackAPI {
 					validationResult.summary,
 				);
 				console.warn("Raw response:", JSON.stringify(data, null, 2));
-				// Continue with unvalidated data but log the issue
+
 				return data as T;
 			}
 
 			console.log(`✅ Request successful (${this.requestCount} requests made)`);
 			return validationResult as T;
 		} catch (error) {
-			if (error instanceof Error) {
+			if (Error.isError(error)) {
 				throw error;
 			}
 			throw new Error("Unknown error occurred while making API request");
 		}
 	}
+	//
 
 	/**
 	 * Get live news articles
 	 */
 	async getNews(params: NewsRequestParams = {}): Promise<NewsResponse> {
-		// Validate input parameters
 		const validationResult = NewsRequestParams(params);
 		if (validationResult instanceof type.errors) {
 			throw new Error(
@@ -337,7 +324,6 @@ class MediastackAPI {
 		categories: NewsCategory[],
 		params: Omit<NewsRequestParams, "categories"> = {},
 	): Promise<NewsResponse> {
-		// Validate each category
 		for (const category of categories) {
 			const categoryValidation = NewsCategory(category);
 			if (categoryValidation instanceof type.errors) {
@@ -440,143 +426,6 @@ class MediastackAPI {
 	}
 }
 
-async function freePlanExamples() {
-	try {
-		// Very conservative settings for free plan
-		const api = new MediastackAPI(undefined, {
-			isFreePlan: true,
-			minRequestInterval: 4000, // 4 seconds between requests
-			maxRequestsPerMinute: 15, // Very conservative
-		});
-
-		console.log("🆓 Free Plan Examples (Conservative Rate Limiting)\n");
-
-		// Example 1: Get latest news with more results in single request
-		console.log("=== Latest News (Single Request) ===");
-		const latestNews = await api.getNews({
-			limit: 10, // Get more results in fewer requests
-			sort: "published_desc",
-		});
-
-		console.log(`Found ${latestNews.data.length} articles:`);
-		latestNews.data.slice(0, 5).forEach((article, index) => {
-			console.log(`${index + 1}. ${article.title}`);
-			console.log(
-				`   Source: ${article.source} | Country: ${article.country.toUpperCase()}`,
-			);
-		});
-
-		const stats = api.getStats();
-		console.log(`\n📊 Used ${stats.requestCount} API calls so far`);
-
-		// Only make a second request if user wants to see more
-		console.log("\nMaking one more request for variety...");
-
-		// Example 2: Get news from a different category
-		const businessNews = await api.getNewsByCategory(["business"], {
-			limit: 5,
-			countries: "us", // Limit to one country to get focused results
-		});
-
-		if (businessNews.data.length > 0) {
-			console.log("\n=== Business News ===");
-			businessNews.data.forEach((article, index) => {
-				console.log(`${index + 1}. ${article.title}`);
-			});
-		} else {
-			console.log("\n=== Business News ===");
-			console.log("No business news available at the moment");
-		}
-
-		const finalStats = api.getStats();
-		console.log(
-			`\n✅ Completed with ${finalStats.requestCount} total API calls`,
-		);
-		console.log(
-			"💡 Tip: Cache these results and reuse them to minimize API calls!",
-		);
-	} catch (error) {
-		console.error("❌ Error:", error instanceof Error ? error.message : error);
-	}
-}
-
-// Usage examples with rate limiting
-// async function examples() {
-// 	try {
-// 		// Initialize with free plan settings (more conservative)
-// 		const api = new MediastackAPI(undefined, {
-// 			isFreePlan: true,
-// 			minRequestInterval: 3000, // 3 seconds between requests for free plan
-// 			maxRequestsPerMinute: 20, // Conservative limit
-// 		});
-
-// 		console.log("🚀 Starting API examples with rate limiting...\n");
-
-// 		// Example 1: Get latest news
-// 		console.log("=== Latest News ===");
-// 		const latestNews = await api.getNews({ limit: 5 });
-// 		console.log(`Found ${latestNews.data.length} articles:`);
-// 		latestNews.data.forEach((article, index) => {
-// 			console.log(`${index + 1}. ${article.title} - ${article.source}`);
-// 		});
-
-// 		// Check if we should continue
-// 		if (api.isApproachingRateLimit()) {
-// 			console.log("⚠️  Approaching rate limit, stopping examples early");
-// 			return;
-// 		}
-
-// 		// Example 2: Search for specific keywords (with longer delay)
-// 		console.log('\n=== Search for "technology" ===');
-// 		const techNews = await api.searchNews("technology", { limit: 3 });
-// 		techNews.data.forEach((article, index) => {
-// 			console.log(`${index + 1}. ${article.title}`);
-// 		});
-
-// 		// Show stats
-// 		const stats = api.getStats();
-// 		console.log(`\n📊 API Stats: ${stats.requestCount} requests made`);
-
-// 		// Only continue if we haven't hit limits
-// 		if (!api.isApproachingRateLimit()) {
-// 			console.log("\n=== Getting Sources (final request) ===");
-// 			try {
-// 				const sources = await api.getSources({ limit: 5 });
-// 				if (sources.data && sources.data.length > 0) {
-// 					sources.data.slice(0, 3).forEach((source, index) => {
-// 						console.log(
-// 							`${index + 1}. ${source.name} (${source.country.toUpperCase()}) - ${source.category}`,
-// 						);
-// 					});
-// 				} else {
-// 					console.log("No sources returned (might be a plan limitation)");
-// 				}
-// 			} catch (sourceError) {
-// 				console.log(
-// 					"⚠️  Sources endpoint not available (might require paid plan)",
-// 				);
-// 				console.log("   Continuing with news-only examples...");
-// 			}
-// 		}
-
-// 		const finalStats = api.getStats();
-// 		console.log(
-// 			`\n✅ Completed safely with ${finalStats.requestCount} total requests`,
-// 		);
-// 	} catch (error) {
-// 		console.error("❌ Error:", error instanceof Error ? error.message : error);
-
-// 		// Provide helpful advice for rate limit errors
-// 		if (error instanceof Error && error.message.includes("Rate limit")) {
-// 			console.log("\n💡 Tips for free plan users:");
-// 			console.log("   - Wait a few minutes before trying again");
-// 			console.log("   - Make fewer concurrent requests");
-// 			console.log("   - Cache results to reduce API calls");
-// 			console.log("   - Consider combining multiple queries into one");
-// 		}
-// 	}
-// }
-
 // Helper functions with validation
 export function formatDate(date: Date): string {
 	if (!(date instanceof Date) || isNaN(date.getTime())) {
@@ -599,24 +448,3 @@ export function getDateRange(startDate: Date, endDate: Date): string {
 	return `${formatDate(startDate)},${formatDate(endDate)}`;
 }
 
-export {
-	MediastackAPI,
-	// Export ArkType schemas for external validation if needed
-	NewsArticle,
-	NewsSource,
-	NewsResponse,
-	SourcesResponse,
-	NewsRequestParams,
-	SourcesRequestParams,
-	NewsCategory,
-	SortOption,
-	// Export types
-	type NewsArticle as INewsArticle,
-	type NewsSource as INewsSource,
-	type NewsResponse as INewsResponse,
-	type SourcesResponse as ISourcesResponse,
-	type NewsRequestParams as INewsRequestParams,
-	type SourcesRequestParams as ISourcesRequestParams,
-	type NewsCategory as INewsCategory,
-	type SortOption as ISortOption,
-};

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { get } from "@/effect-fetcher";
 import { FetchHttpClient } from "@effect/platform";
 import { type } from "arktype";
 import { Effect, pipe } from "effect";
+import { get } from "@/effect-fetcher";
 
 // ArkType definitions for GNews API
 const Article = type({
@@ -87,10 +87,10 @@ class GNewsAPI {
 						nullable: params.nullable,
 						from: params.from,
 						to: params.to,
-						sortby: params.sortby
-					}
+						sortby: params.sortby,
+					},
 				),
-				Effect.provide(FetchHttpClient.layer)
+				Effect.provide(FetchHttpClient.layer),
 			);
 
 			return await Effect.runPromise(effect); // already validated to GNewsResponse
@@ -104,47 +104,46 @@ class GNewsAPI {
 	/**
 	 * Get top headlines
 	 */
-  async getTopHeadlines(params?: {
-    lang?: string;
-    country?: string;
-    max?: number;
-    nullable?: string;
-    category?:
-      | "general"
-      | "world"
-      | "nation"
-      | "business"
-      | "technology"
-      | "entertainment"
-      | "sports"
-      | "science"
-      | "health";
-  }): Promise<GNewsResponse> {
-    const effect = pipe(
-      get(
-        `${this.baseUrl}/top-headlines`,
-        {
-          schema: GNewsResponse,
-          retries: 1,
-          retryDelay: 500,
-          timeout: 10_000,
-        },
-        {
-          apikey: this.apiKey,
-          lang: params?.lang,
-          country: params?.country,
-          max: params?.max,
-          nullable: params?.nullable,
-          category: params?.category,
-        }
-      ),
-      // provide the HTTP client once at the edge
-      Effect.provide(FetchHttpClient.layer)
-    );
+	async getTopHeadlines(params?: {
+		lang?: string;
+		country?: string;
+		max?: number;
+		nullable?: string;
+		category?:
+			| "general"
+			| "world"
+			| "nation"
+			| "business"
+			| "technology"
+			| "entertainment"
+			| "sports"
+			| "science"
+			| "health";
+	}): Promise<GNewsResponse> {
+		const effect = pipe(
+			get(
+				`${this.baseUrl}/top-headlines`,
+				{
+					schema: GNewsResponse,
+					retries: 1,
+					retryDelay: 500,
+					timeout: 10_000,
+				},
+				{
+					apikey: this.apiKey,
+					lang: params?.lang,
+					country: params?.country,
+					max: params?.max,
+					nullable: params?.nullable,
+					category: params?.category,
+				},
+			),
+			// provide the HTTP client once at the edge
+			Effect.provide(FetchHttpClient.layer),
+		);
 
-    return Effect.runPromise(effect);
-  }
-
+		return Effect.runPromise(effect);
+	}
 
 	/**
 	 * Helper method to display articles in a formatted way
@@ -171,70 +170,4 @@ class GNewsAPI {
 	}
 }
 
-// // Test function
-// async function testGNewsAPI() {
-//   try {
-//     const gnews = new GNewsAPI();
-
-//     console.log('🔍 Testing GNews API...\n');
-
-//     // Test 1: Search for specific topic
-//     console.log('1️⃣ Testing search endpoint...');
-//     const searchResults = await gnews.search({
-//       q: 'artificial intelligence',
-//       lang: 'en',
-//       max: 5,
-//       sortby: 'publishedAt',
-//     });
-
-//     console.log(`Found ${searchResults.totalArticles} articles about AI`);
-//     gnews.displayArticles(searchResults.articles, 3);
-
-//     // Test 2: Get top headlines
-//     console.log('\n2️⃣ Testing top headlines endpoint...');
-//     const headlines = await gnews.getTopHeadlines({
-//       category: 'technology',
-//       lang: 'en',
-//       max: 5,
-//     });
-
-//     console.log(`Found ${headlines.totalArticles} top technology headlines`);
-//     gnews.displayArticles(headlines.articles, 3);
-
-//     // Test 3: Search with date range (last 7 days)
-//     console.log('\n3️⃣ Testing search with date range...');
-//     const sevenDaysAgo = new Date();
-//     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-//     const recentNews = await gnews.search({
-//       q: 'climate change',
-//       lang: 'en',
-//       from: sevenDaysAgo.toISOString().split('T')[0],
-//       max: 3,
-//       sortby: 'publishedAt',
-//     });
-
-//     console.log(
-//       `Found ${recentNews.totalArticles} recent articles about climate change`
-//     );
-//     gnews.displayArticles(recentNews.articles, 2);
-
-//     console.log('\n✅ All tests completed successfully!');
-//   } catch (error) {
-//     console.error('❌ Test failed:', error);
-
-//     if (error instanceof Error) {
-//       if (error.message.includes('GNEWS_API_KEY')) {
-//         console.log(
-//           '\n💡 Make sure to set your GNEWS_API_KEY environment variable'
-//         );
-//         console.log(
-//           '   You can create a .env file with: GNEWS_API_KEY=your_api_key_here'
-//         );
-//       }
-//     }
-//   }
-// }
-
 export { Article, GNewsAPI, GNewsResponse };
-// (async () => console.log(await testGNewsAPI().catch(console.error)))()

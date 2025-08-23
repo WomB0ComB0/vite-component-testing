@@ -17,8 +17,8 @@
 import fs from "node:fs";
 import { GoogleGenAI } from "@google/genai";
 import { type } from "arktype";
-import { v4 as uuidv4 } from "uuid";
 import { Error } from "effect/Data";
+import { v4 as uuidv4 } from "uuid";
 
 // --- ArkType Schemas for Data Validation ---
 
@@ -216,9 +216,7 @@ class ImageContextExtractor {
 			// Validate the created object at runtime
 			const res = InitialResults.assert(resultObject);
 			if (!res) {
-				throw new Error(
-					`Internal data validation failed for InitialResults`,
-				);
+				throw new Error(`Internal data validation failed for InitialResults`);
 			}
 			return res;
 		} catch (error) {
@@ -290,9 +288,7 @@ class ImageContextExtractor {
 			// Validate the created object at runtime
 			const res = MetadataResults.assert(resultObject);
 			if (!res) {
-				throw new Error(
-					`Internal data validation failed for MetadataResults`,
-				);
+				throw new Error(`Internal data validation failed for MetadataResults`);
 			}
 			return res;
 		} catch (error) {

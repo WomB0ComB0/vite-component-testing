@@ -16,7 +16,6 @@
 
 import { type } from "arktype";
 
-// ArkType schemas for runtime validation
 const FoodNutrientDerivation = type({
 	id: "number",
 	code: "string",
@@ -256,9 +255,9 @@ export class FDCClient {
 
 		this.apiKey = validatedConfig.apiKey;
 		this.baseUrl = validatedConfig.baseUrl || "https://api.nal.usda.gov/fdc/v1";
-		this.timeout = validatedConfig.timeout || 10000; // 10 seconds
+		this.timeout = validatedConfig.timeout || 10_000; // 10 seconds
 		this.retryAttempts = validatedConfig.retryAttempts || 3;
-		this.retryDelay = validatedConfig.retryDelay || 1000; // 1 second
+		this.retryDelay = validatedConfig.retryDelay || 1_000; // 1 second
 	}
 
 	/**
@@ -287,7 +286,7 @@ export class FDCClient {
 
 		for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
 			try {
-				console.log(`Making request to: ${url}`); // Debug log
+				console.log(`Making request to: ${url}`);
 
 				const response = await fetch(url, requestOptions);
 				clearTimeout(timeoutId);
@@ -323,9 +322,8 @@ export class FDCClient {
 					error instanceof FDCRateLimitError ||
 					error instanceof FDCAuthError ||
 					error instanceof FDCValidationError
-				) {
+				)
 					throw error; // Don't retry on these errors
-				}
 
 				if (attempt < this.retryAttempts) {
 					await this.delay(this.retryDelay * attempt);
@@ -466,7 +464,6 @@ export class FDCClient {
 	 * Get details for multiple food items by FDC IDs
 	 */
 	async getFoods(options: FoodsOptions): Promise<Food[]> {
-		// Validate input options
 		const optionsValidation = FoodsOptions(options);
 		if (optionsValidation instanceof type.errors) {
 			throw new FDCValidationError(
@@ -518,7 +515,6 @@ export class FDCClient {
 	async getFoodsList(
 		options: ListOptions = {},
 	): Promise<FoodsListResponse | null> {
-		// Validate input options
 		const optionsValidation = ListOptions(options);
 		if (optionsValidation instanceof type.errors) {
 			throw new FDCValidationError(
@@ -537,7 +533,6 @@ export class FDCClient {
 				sortOrder: validatedOptions.sortOrder || "asc",
 			};
 
-			// Only add dataType if specified
 			if (validatedOptions.dataType && validatedOptions.dataType.length > 0) {
 				params.dataType = validatedOptions.dataType;
 			}
@@ -632,7 +627,6 @@ export class FDCClient {
 		}
 
 		if (dataType) {
-			// Validate each data type
 			for (const dt of dataType) {
 				const dtValidation = DataType(dt);
 				if (dtValidation instanceof type.errors) {
@@ -660,7 +654,6 @@ export class FDCClient {
 	async getFoodsListAlternative(
 		options: ListOptions = {},
 	): Promise<SearchResult> {
-		// Validate input options
 		const optionsValidation = ListOptions(options);
 		if (optionsValidation instanceof type.errors) {
 			throw new FDCValidationError(
@@ -671,9 +664,8 @@ export class FDCClient {
 
 		const validatedOptions = optionsValidation as ListOptions;
 
-		// Use a broad search term to get a general list
 		const searchOptions: SearchOptions = {
-			query: "*", // Wildcard to get all foods
+			query: "*",
 			dataType: validatedOptions.dataType,
 			pageSize: validatedOptions.pageSize || 50,
 			pageNumber: validatedOptions.pageNumber || 1,
@@ -706,98 +698,6 @@ export function createFDCClient(
 	return new FDCClient(fullConfig);
 }
 
-// Example usage with improved error handling and validation
-// async function testFDCClient() {
-// 	try {
-// 		const client = createFDCClient(process.env.FOOD_API_KEY || "your-api-key");
-
-// 		// Search for foods
-// 		console.log("=== Searching for Cheddar cheese ===");
-// 		const searchResults = await client.searchFoods({
-// 			query: "Cheddar cheese",
-// 			dataType: ["Branded"],
-// 			pageSize: 25,
-// 		});
-// 		console.log("Search Results:", searchResults.foods.length, "foods found");
-// 		console.log("Total hits:", searchResults.totalHits);
-
-// 		// Get specific food details (using FDC ID from search results)
-// 		if (searchResults.foods.length > 0) {
-// 			console.log("\n=== Getting food details ===");
-// 			const firstFood = searchResults.foods[0];
-// 			const food = await client.getFood(firstFood.fdcId);
-// 			console.log("Food Details:", food.description);
-// 			console.log("Nutrients count:", food.foodNutrients.length);
-
-// 			// Get multiple foods
-// 			console.log("\n=== Getting multiple foods ===");
-// 			const foods = await client.getFoods({
-// 				fdcIds: [firstFood.fdcId],
-// 				format: "full",
-// 			});
-// 			console.log("Multiple Foods:", foods.length);
-// 		}
-
-// 		// Try the foods list endpoint (might not be available)
-// 		console.log("\n=== Trying getFoodsList ===");
-// 		const foodsList = await client.getFoodsList({
-// 			dataType: ["Foundation"],
-// 			pageSize: 50,
-// 			pageNumber: 1,
-// 		});
-
-// 		if (foodsList) {
-// 			console.log("Foods List:", foodsList.foods?.length, "foods");
-// 			console.log("Current page:", foodsList.currentPage);
-// 		} else {
-// 			console.log("Foods List endpoint not available, trying alternative...");
-
-// 			// Use alternative method
-// 			console.log("\n=== Using getFoodsListAlternative ===");
-// 			const alternativeList = await client.getFoodsListAlternative({
-// 				dataType: ["Foundation"],
-// 				pageSize: 10,
-// 				pageNumber: 1,
-// 			});
-// 			console.log(
-// 				"Alternative Foods List:",
-// 				alternativeList.foods.length,
-// 				"foods",
-// 			);
-// 		}
-
-// 		// Find a specific food (convenience method)
-// 		console.log("\n=== Finding apple ===");
-// 		const apple = await client.findFood("apple", ["Foundation"]);
-// 		console.log("Apple:", apple?.description);
-
-// 		// Get nutrients for a food
-// 		if (apple) {
-// 			console.log("\n=== Getting nutrients ===");
-// 			const nutrients = await client.getFoodNutrients(apple.fdcId, [203, 204]); // protein, fat
-// 			console.log("Nutrients:", nutrients.length);
-// 			nutrients.forEach((nutrient) => {
-// 				console.log(
-// 					`- ${nutrient.nutrient.name}: ${nutrient.amount} ${nutrient.nutrient.unitName}`,
-// 				);
-// 			});
-// 		}
-// 	} catch (error) {
-// 		if (error instanceof FDCValidationError) {
-// 			console.error("FDC Validation Error:", error.message);
-// 			console.error("Validation details:", error.response);
-// 		} else if (error instanceof FDCApiError) {
-// 			console.error("FDC API Error:", error.message, "Status:", error.status);
-// 			if (error.response) {
-// 				console.error("Response:", error.response);
-// 			}
-// 		} else {
-// 			console.error("Unexpected error:", error);
-// 		}
-// 	}
-// }
-
-// Export all types and schemas for external use
 export {
 	// ArkType schemas for external validation
 	Food,
