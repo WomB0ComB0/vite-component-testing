@@ -1,11 +1,24 @@
+import {
+	AlertCircle,
+	CheckCircle,
+	FileImage,
+	LinkIcon,
+	Loader2,
+	Newspaper,
+	Sparkles,
+	Tag,
+	Utensils,
+	X,
+	Youtube,
+} from "lucide-react";
+import type React from "react";
+import { useCallback, useMemo } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { AlertCircle, CheckCircle, FileImage, LinkIcon, Loader2, Newspaper, Sparkles, Tag, Utensils, X, Youtube } from "lucide-react";
-import React, { useCallback, useMemo } from "react";
 import type { Category, PipelineResult } from "./AIAnalysisPipeline";
 
 export interface ImageFile {
@@ -47,9 +60,7 @@ const AnalysisSection: React.FC<{
 }> = ({ title, icon, iconBgColor, children }) => (
 	<div className="space-y-3">
 		<div className="flex items-center gap-3 text-sm font-bold text-foreground">
-			<div className={`p-2 ${iconBgColor} rounded-lg`}>
-				{icon}
-			</div>
+			<div className={`p-2 ${iconBgColor} rounded-lg`}>{icon}</div>
 			{title}
 		</div>
 		{children}
@@ -112,13 +123,14 @@ const ImageCard: React.FC<ImageCardProps> = ({
 			<div className="absolute inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center">
 				<div className="text-center space-y-4 p-6">
 					<div className="relative">
-						<Loader2 className="w-12 h-12 animate-spin mx-auto text-accent" aria-label="Processing" />
+						<Loader2
+							className="w-12 h-12 animate-spin mx-auto text-accent"
+							aria-label="Processing"
+						/>
 						<div className="absolute inset-0 w-12 h-12 mx-auto border-4 border-accent/20 rounded-full animate-pulse-glow" />
 					</div>
 					<div className="w-40 h-2 bg-accent/10 rounded-full"></div>
-					<p className="text-sm font-medium text-foreground">
-						{loadingText}
-					</p>
+					<p className="text-sm font-medium text-foreground">{loadingText}</p>
 					<div className="animate-shimmer h-1 w-32 mx-auto rounded" />
 				</div>
 			</div>
@@ -168,17 +180,15 @@ const ImageCard: React.FC<ImageCardProps> = ({
 								<span>Detected Objects</span>
 							</div>
 							<div className="flex flex-wrap gap-2">
-								{result.insights.meta.labels
-									.slice(0, 4)
-									.map((label, i) => (
-										<Badge
-											key={i}
-											variant="outline"
-											className="text-xs font-medium px-2 py-1 bg-muted/50 hover:bg-accent/10 transition-colors"
-										>
-											{label}
-										</Badge>
-									))}
+								{result.insights.meta.labels.slice(0, 4).map((label, i) => (
+									<Badge
+										key={i}
+										variant="outline"
+										className="text-xs font-medium px-2 py-1 bg-muted/50 hover:bg-accent/10 transition-colors"
+									>
+										{label}
+									</Badge>
+								))}
 							</div>
 						</div>
 					)}
@@ -212,16 +222,15 @@ const ImageCard: React.FC<ImageCardProps> = ({
 				)}
 
 				{/* Food Nutrients */}
-				{result.insights.food?.nutrients && result.insights.food.nutrients.length > 0 && (
-					<AnalysisSection
-						title="Nutrition Facts"
-						icon={<Utensils className="w-4 h-4 text-green-600" />}
-						iconBgColor="bg-green-50 dark:bg-green-900/20"
-					>
-						<div className="grid grid-cols-2 gap-3">
-							{result.insights.food.nutrients
-								.slice(0, 4)
-								.map((n) => (
+				{result.insights.food?.nutrients &&
+					result.insights.food.nutrients.length > 0 && (
+						<AnalysisSection
+							title="Nutrition Facts"
+							icon={<Utensils className="w-4 h-4 text-green-600" />}
+							iconBgColor="bg-green-50 dark:bg-green-900/20"
+						>
+							<div className="grid grid-cols-2 gap-3">
+								{result.insights.food.nutrients.slice(0, 4).map((n) => (
 									<div
 										key={n.id}
 										className="bg-gradient-to-br from-muted/50 to-muted/30 rounded-lg p-3 border border-border/30 hover:border-accent/30 transition-colors"
@@ -234,9 +243,9 @@ const ImageCard: React.FC<ImageCardProps> = ({
 										</div>
 									</div>
 								))}
-						</div>
-					</AnalysisSection>
-				)}
+							</div>
+						</AnalysisSection>
+					)}
 
 				{/* Web Results */}
 				{result.insights.cse && result.insights.cse.length > 0 && (
@@ -272,19 +281,17 @@ const ImageCard: React.FC<ImageCardProps> = ({
 					>
 						<ScrollArea className="h-24">
 							<div className="space-y-3">
-								{result.insights.youtube
-									.slice(0, 2)
-									.map((v, i) => (
-										<a
-											key={i}
-											href={`https://www.youtube.com/watch?v=${v.videoId}`}
-											target="_blank"
-											rel="noreferrer"
-											className="block text-sm text-accent hover:text-accent/80 hover:underline leading-relaxed font-medium transition-colors p-2 hover:bg-accent/5 rounded-md"
-										>
-											{v.title}
-										</a>
-									))}
+								{result.insights.youtube.slice(0, 2).map((v, i) => (
+									<a
+										key={i}
+										href={`https://www.youtube.com/watch?v=${v.videoId}`}
+										target="_blank"
+										rel="noreferrer"
+										className="block text-sm text-accent hover:text-accent/80 hover:underline leading-relaxed font-medium transition-colors p-2 hover:bg-accent/5 rounded-md"
+									>
+										{v.title}
+									</a>
+								))}
 							</div>
 						</ScrollArea>
 					</AnalysisSection>
@@ -303,9 +310,7 @@ const ImageCard: React.FC<ImageCardProps> = ({
 					<FileImage className="w-10 h-10 text-accent" />
 				</div>
 				<div className="space-y-2">
-					<p className="text-sm font-medium text-foreground">
-						{readyText}
-					</p>
+					<p className="text-sm font-medium text-foreground">{readyText}</p>
 					<p className="text-xs text-muted-foreground">
 						Click analyze to get insights
 					</p>

@@ -7,7 +7,10 @@ export const validateFileSignature = (file: File): Promise<boolean> => {
 	return new Promise((resolve) => {
 		const reader = new FileReader();
 		reader.onload = (e) => {
-			const arr = new Uint8Array(e.target?.result as ArrayBuffer).subarray(0, 4);
+			const arr = new Uint8Array(e.target?.result as ArrayBuffer).subarray(
+				0,
+				4,
+			);
 			let header = "";
 			for (let i = 0; i < arr.length; i++)
 				header += arr[i].toString(16).padStart(2, "0");
@@ -61,13 +64,13 @@ export const validateFile = async (
 	maxHeight: number,
 ): Promise<ValidationError[]> => {
 	const errors: ValidationError[] = [];
-	
+
 	if (file.size > maxSize)
 		errors.push({
 			type: "size",
 			message: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds max (${(maxSize / 1024 / 1024).toFixed(2)}MB)`,
 		});
-	
+
 	if (!acceptedFormats.includes(file.type))
 		errors.push({
 			type: "format",
@@ -96,7 +99,7 @@ export const validateFile = async (
 			});
 		}
 	}
-	
+
 	return errors;
 };
 

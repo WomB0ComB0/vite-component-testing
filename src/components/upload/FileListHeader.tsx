@@ -1,7 +1,8 @@
+import { FileImage, X } from "lucide-react";
+import type React from "react";
+import { useCallback, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { FileImage, X } from "lucide-react";
-import React, { useCallback, useMemo } from "react";
 
 export interface FileListHeaderProps {
 	/** Number of files currently uploaded */
@@ -80,25 +81,26 @@ const FileListHeader: React.FC<FileListHeaderProps> = ({
 	}, [showClearButton, handleClearAll, fileCount, clearButtonText]);
 
 	// Memoized header content
-	const headerContent = useMemo(() => (
-		<div className="flex items-center gap-4">
-			<div className="p-3 bg-accent/10 rounded-full">
-				<FileImage className="w-6 h-6 text-accent" aria-label="File icon" />
+	const headerContent = useMemo(
+		() => (
+			<div className="flex items-center gap-4">
+				<div className="p-3 bg-accent/10 rounded-full">
+					<FileImage className="w-6 h-6 text-accent" aria-label="File icon" />
+				</div>
+				<div>
+					<h3 className="text-xl font-bold text-foreground">{title}</h3>
+					<p className="text-muted-foreground">{subtitleText}</p>
+				</div>
+				{fileCountBadge}
 			</div>
-			<div>
-				<h3 className="text-xl font-bold text-foreground">
-					{title}
-				</h3>
-				<p className="text-muted-foreground">
-					{subtitleText}
-				</p>
-			</div>
-			{fileCountBadge}
-		</div>
-	), [title, subtitleText, fileCountBadge]);
+		),
+		[title, subtitleText, fileCountBadge],
+	);
 
 	return (
-		<div className={`flex items-center justify-between p-6 bg-gradient-to-r from-card to-muted/30 rounded-xl border shadow-sm ${className}`}>
+		<div
+			className={`flex items-center justify-between p-6 bg-gradient-to-r from-card to-muted/30 rounded-xl border shadow-sm ${className}`}
+		>
 			{headerContent}
 			{clearButton}
 		</div>

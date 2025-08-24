@@ -447,4 +447,3 @@ export function getDateRange(startDate: Date, endDate: Date): string {
 
 	return `${formatDate(startDate)},${formatDate(endDate)}`;
 }
-

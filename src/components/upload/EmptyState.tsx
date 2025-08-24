@@ -1,7 +1,8 @@
+import { FileImage, Sparkles, Upload } from "lucide-react";
+import type React from "react";
+import { useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileImage, Sparkles, Upload } from "lucide-react";
-import React, { useCallback, useMemo } from "react";
 
 export interface EmptyStateProps {
 	/** Callback when upload button is clicked */
@@ -54,32 +55,36 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 	}, [icon, showSparkle]);
 
 	// Memoized content section
-	const contentSection = useMemo(() => (
-		<div className="space-y-4 max-w-md">
-			<h3 className="text-2xl font-bold text-foreground">
-				{title}
-			</h3>
-			<p className="text-muted-foreground leading-relaxed">
-				{description}
-			</p>
-		</div>
-	), [title, description]);
+	const contentSection = useMemo(
+		() => (
+			<div className="space-y-4 max-w-md">
+				<h3 className="text-2xl font-bold text-foreground">{title}</h3>
+				<p className="text-muted-foreground leading-relaxed">{description}</p>
+			</div>
+		),
+		[title, description],
+	);
 
 	// Memoized upload button
-	const uploadButton = useMemo(() => (
-		<Button
-			size="lg"
-			onClick={handleClick}
-			className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-			aria-label="Start uploading images"
-		>
-			<Upload className="w-5 h-5 mr-2" />
-			{buttonText}
-		</Button>
-	), [handleClick, buttonText]);
+	const uploadButton = useMemo(
+		() => (
+			<Button
+				size="lg"
+				onClick={handleClick}
+				className="bg-gradient-to-r from-accent to-primary hover:from-accent/90 hover:to-primary/90 text-white font-semibold px-8 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+				aria-label="Start uploading images"
+			>
+				<Upload className="w-5 h-5 mr-2" />
+				{buttonText}
+			</Button>
+		),
+		[handleClick, buttonText],
+	);
 
 	return (
-		<Card className={`border-2 border-dashed border-border/50 bg-gradient-to-br from-card to-muted/20 shadow-lg ${className}`}>
+		<Card
+			className={`border-2 border-dashed border-border/50 bg-gradient-to-br from-card to-muted/20 shadow-lg ${className}`}
+		>
 			<CardContent className="flex flex-col items-center justify-center py-16 text-center space-y-6">
 				{iconContainer}
 				{contentSection}

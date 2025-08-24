@@ -1,17 +1,19 @@
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Sparkles } from "lucide-react";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-
+import { Alert, AlertDescription } from "@/components/ui/alert";
+// Import utilities
+import EnhancedAIAnalysis from "./AIAnalysisLoader";
+import { AIAnalysisPipeline, type PipelineResult } from "./AIAnalysisPipeline";
 // Import compartmentalized components
 import EmptyState from "./EmptyState";
 import FileListHeader from "./FileListHeader";
+import {
+	formatFileSize,
+	type ValidationError,
+	validateFile,
+} from "./FileValidation";
 import ImageCard from "./ImageCard";
 import ImageUploadArea from "./ImageUploadArea";
-
-// Import utilities
-import EnhancedAIAnalysis from "./AIAnalysisLoader";
-import { AIAnalysisPipeline, PipelineResult } from "./AIAnalysisPipeline";
-import { formatFileSize, validateFile, ValidationError } from "./FileValidation";
 
 // Enhanced TypeScript interfaces with better documentation
 export interface ImageFile {
@@ -54,21 +56,21 @@ const useFileManagement = (maxFiles: number) => {
 	const [errors, setErrors] = useState<ValidationError[]>([]);
 
 	const addFiles = useCallback((newFiles: ImageFile[]) => {
-		setFiles(prev => [...prev, ...newFiles]);
+		setFiles((prev) => [...prev, ...newFiles]);
 	}, []);
 
 	const removeFile = useCallback((id: string) => {
-		setFiles(prev => {
-			const fileToRemove = prev.find(f => f.id === id);
+		setFiles((prev) => {
+			const fileToRemove = prev.find((f) => f.id === id);
 			if (fileToRemove) {
 				URL.revokeObjectURL(fileToRemove.preview);
 			}
-			return prev.filter(f => f.id !== id);
+			return prev.filter((f) => f.id !== id);
 		});
 	}, []);
 
 	const clearAll = useCallback(() => {
-		files.forEach(file => URL.revokeObjectURL(file.preview));
+		files.forEach((file) => URL.revokeObjectURL(file.preview));
 		setFiles([]);
 		setErrors([]);
 	}, [files]);
@@ -89,15 +91,19 @@ const useFileManagement = (maxFiles: number) => {
 
 // Custom hook for AI analysis state
 const useAIAnalysis = () => {
-	const [results, setResults] = useState<Record<string, PipelineResult | undefined>>({});
-	const [processingProgress, setProcessingProgress] = useState<Record<string, number>>({});
+	const [results, setResults] = useState<
+		Record<string, PipelineResult | undefined>
+	>({});
+	const [processingProgress, setProcessingProgress] = useState<
+		Record<string, number>
+	>({});
 
 	const setResult = useCallback((id: string, result: PipelineResult) => {
-		setResults(prev => ({ ...prev, [id]: result }));
+		setResults((prev) => ({ ...prev, [id]: result }));
 	}, []);
 
 	const removeResult = useCallback((id: string) => {
-		setResults(prev => {
+		setResults((prev) => {
 			const copy = { ...prev };
 			delete copy[id];
 			return copy;
@@ -137,8 +143,16 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 	const [dragActive, setDragActive] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	const { files, errors, addFiles, removeFile, clearAll, setValidationErrors } = useFileManagement(maxFiles);
-	const { results, processingProgress, setResult, removeResult, clearResults, setProcessingProgress } = useAIAnalysis();
+	const { files, errors, addFiles, removeFile, clearAll, setValidationErrors } =
+		useFileManagement(maxFiles);
+	const {
+		results,
+		processingProgress,
+		setResult,
+		removeResult,
+		clearResults,
+		setProcessingProgress,
+	} = useAIAnalysis();
 
 	// Memoized AI pipeline instance
 	const aiPipeline = useMemo(() => {
@@ -146,32 +160,37 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 	}, []);
 
 	// Memoized validation function
-	const validateAndProcessFile = useCallback(async (file: File): Promise<ImageFile | null> => {
-		const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-		const sanitizedFile = new File([file], sanitizedName, { type: file.type });
+	const validateAndProcessFile = useCallback(
+		async (file: File): Promise<ImageFile | null> => {
+			const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+			const sanitizedFile = new File([file], sanitizedName, {
+				type: file.type,
+			});
 
-		const errors = await validateFile(
-			sanitizedFile,
-			maxSize,
-			acceptedFormats,
-			maxWidth,
-			maxHeight,
-		);
+			const errors = await validateFile(
+				sanitizedFile,
+				maxSize,
+				acceptedFormats,
+				maxWidth,
+				maxHeight,
+			);
 
-		if (errors.length > 0) {
-			setValidationErrors(errors);
-			return null;
-		}
+			if (errors.length > 0) {
+				setValidationErrors(errors);
+				return null;
+			}
 
-		return {
-			file: sanitizedFile,
-			preview: URL.createObjectURL(sanitizedFile),
-			id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-			size: sanitizedFile.size,
-			type: sanitizedFile.type,
-			lastModified: sanitizedFile.lastModified,
-		};
-	}, [maxSize, acceptedFormats, maxWidth, maxHeight, setValidationErrors]);
+			return {
+				file: sanitizedFile,
+				preview: URL.createObjectURL(sanitizedFile),
+				id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+				size: sanitizedFile.size,
+				type: sanitizedFile.type,
+				lastModified: sanitizedFile.lastModified,
+			};
+		},
+		[maxSize, acceptedFormats, maxWidth, maxHeight, setValidationErrors],
+	);
 
 	// Enhanced file processing with better error handling
 	const processFiles = useCallback(
@@ -211,16 +230,16 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 				onUpload?.(processedFiles);
 
 				// Kick off AI analysis for each file
-				processedFiles.forEach(imageFile => {
+				processedFiles.forEach((imageFile) => {
 					if (useEnhancedAnalysis) {
 						// Use enhanced analysis
-						setProcessingProgress(prev => ({ ...prev, [imageFile.id]: 0 }));
+						setProcessingProgress((prev) => ({ ...prev, [imageFile.id]: 0 }));
 					} else {
 						// Use traditional analysis
 						aiPipeline
 							.runPipelineForImage(imageFile)
-							.then(result => setResult(imageFile.id, result))
-							.catch(error => {
+							.then((result) => setResult(imageFile.id, result))
+							.catch((error) => {
 								setResult(imageFile.id, {
 									id: imageFile.id,
 									detect: {
@@ -237,7 +256,7 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 								});
 							})
 							.finally(() => {
-								setProcessingProgress(prev => {
+								setProcessingProgress((prev) => {
 									const copy = { ...prev };
 									delete copy[imageFile.id];
 									return copy;
@@ -253,7 +272,18 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 
 			setIsUploading(false);
 		},
-		[maxFiles, validateAndProcessFile, addFiles, onUpload, onError, aiPipeline, setResult, errors, setValidationErrors, useEnhancedAnalysis],
+		[
+			maxFiles,
+			validateAndProcessFile,
+			addFiles,
+			onUpload,
+			onError,
+			aiPipeline,
+			setResult,
+			errors,
+			setValidationErrors,
+			useEnhancedAnalysis,
+		],
 	);
 
 	// Enhanced drag and drop handlers
@@ -287,10 +317,13 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 	);
 
 	// Enhanced file removal with cleanup
-	const handleRemoveFile = useCallback((id: string) => {
-		removeFile(id);
-		removeResult(id);
-	}, [removeFile, removeResult]);
+	const handleRemoveFile = useCallback(
+		(id: string) => {
+			removeFile(id);
+			removeResult(id);
+		},
+		[removeFile, removeResult],
+	);
 
 	// Enhanced clear all with cleanup
 	const handleClearAll = useCallback(() => {
@@ -299,14 +332,17 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 	}, [clearAll, clearResults]);
 
 	// Handle AI analysis results
-	const handleAnalysisResult = useCallback((result: PipelineResult) => {
-		setResult(result.id, result);
-		setProcessingProgress(prev => {
-			const copy = { ...prev };
-			delete copy[result.id];
-			return copy;
-		});
-	}, [setResult]);
+	const handleAnalysisResult = useCallback(
+		(result: PipelineResult) => {
+			setResult(result.id, result);
+			setProcessingProgress((prev) => {
+				const copy = { ...prev };
+				delete copy[result.id];
+				return copy;
+			});
+		},
+		[setResult],
+	);
 
 	const handleAnalysisError = useCallback((error: Error) => {
 		console.error("AI Analysis error:", error);
@@ -316,27 +352,30 @@ const SecureImageUpload: React.FC<ImageUploadProps> = ({
 	// Cleanup on unmount
 	React.useEffect(() => {
 		return () => {
-			files.forEach(file => URL.revokeObjectURL(file.preview));
+			files.forEach((file) => URL.revokeObjectURL(file.preview));
 		};
 	}, [files]);
 
 	// Memoized header content
-	const headerContent = useMemo(() => (
-		<div className="text-center space-y-4 py-8">
-			<div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-accent/10 to-primary/10 rounded-full border border-accent/20">
-				<Sparkles className="w-5 h-5 text-accent animate-pulse" />
-				<span className="text-sm font-medium text-foreground">
-					AI-Powered Image Analysis
-				</span>
+	const headerContent = useMemo(
+		() => (
+			<div className="text-center space-y-4 py-8">
+				<div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-accent/10 to-primary/10 rounded-full border border-accent/20">
+					<Sparkles className="w-5 h-5 text-accent animate-pulse" />
+					<span className="text-sm font-medium text-foreground">
+						AI-Powered Image Analysis
+					</span>
+				</div>
+				<h1 className="text-4xl font-bold text-foreground tracking-tight">
+					{title}
+				</h1>
+				<p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+					{description}
+				</p>
 			</div>
-			<h1 className="text-4xl font-bold text-foreground tracking-tight">
-				{title}
-			</h1>
-			<p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-				{description}
-			</p>
-		</div>
-	), [title, description]);
+		),
+		[title, description],
+	);
 
 	return (
 		<div className={`w-full max-w-7xl mx-auto space-y-8 ${className}`}>

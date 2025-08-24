@@ -1,8 +1,18 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AIAnalysisPipeline, type CSEResult, type NewsHit, type PipelineResult, type WebDetect, type YTHit } from "./AIAnalysisPipeline";
+import {
+	AIAnalysisPipeline,
+	type CSEResult,
+	type NewsHit,
+	type PipelineResult,
+	type WebDetect,
+	type YTHit,
+} from "./AIAnalysisPipeline";
 
 // Custom error component for AI analysis
-const AIAnalysisError: React.FC<{ error: Error; retry: () => void }> = ({ error, retry }) => (
+const AIAnalysisError: React.FC<{ error: Error; retry: () => void }> = ({
+	error,
+	retry,
+}) => (
 	<div className="p-4 bg-red-50 border border-red-200 rounded-lg">
 		<h3 className="text-red-800 font-semibold mb-2">AI Analysis Failed</h3>
 		<p className="text-red-600 text-sm mb-3">{error.message}</p>
@@ -36,16 +46,20 @@ export const useReverseImageSearch = (file: File | null) => {
 
 	const refetch = useCallback(async () => {
 		if (!file) return;
-		
+
 		setIsLoading(true);
 		setError(null);
-		
+
 		try {
-			const aiPipeline = new AIAnalysisPipeline(import.meta.env.VITE_FOOD_API_KEY ?? "");
+			const aiPipeline = new AIAnalysisPipeline(
+				import.meta.env.VITE_FOOD_API_KEY ?? "",
+			);
 			const result = await aiPipeline.reverseImage(file);
 			setData(result);
 		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+			setError(
+				err instanceof Error ? err : new Error("Unknown error occurred"),
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -72,15 +86,17 @@ export const useNewsSearch = (query: string) => {
 
 	const refetch = useCallback(async () => {
 		if (!query) return;
-		
+
 		setIsLoading(true);
 		setError(null);
-		
+
 		try {
 			const result = await AIAnalysisPipeline.fetchNews(query);
 			setData(result);
 		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+			setError(
+				err instanceof Error ? err : new Error("Unknown error occurred"),
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -107,15 +123,17 @@ export const useWebSearch = (query: string) => {
 
 	const refetch = useCallback(async () => {
 		if (!query) return;
-		
+
 		setIsLoading(true);
 		setError(null);
-		
+
 		try {
 			const result = await AIAnalysisPipeline.fetchWebResults(query);
 			setData(result);
 		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+			setError(
+				err instanceof Error ? err : new Error("Unknown error occurred"),
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -142,15 +160,17 @@ export const useYouTubeSearch = (query: string) => {
 
 	const refetch = useCallback(async () => {
 		if (!query) return;
-		
+
 		setIsLoading(true);
 		setError(null);
-		
+
 		try {
 			const result = await AIAnalysisPipeline.fetchYouTubeVideos(query);
 			setData(result);
 		} catch (err) {
-			setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+			setError(
+				err instanceof Error ? err : new Error("Unknown error occurred"),
+			);
 		} finally {
 			setIsLoading(false);
 		}
@@ -269,11 +289,12 @@ export const EnhancedAIAnalysis: React.FC<{
 			try {
 				setIsProcessing(true);
 				setError(null);
-				
+
 				const result = await aiPipeline.runPipelineForImage(imageFile);
 				onResult(result);
 			} catch (err) {
-				const error = err instanceof Error ? err : new Error('AI analysis failed');
+				const error =
+					err instanceof Error ? err : new Error("AI analysis failed");
 				setError(error);
 				onError(error);
 			} finally {
@@ -285,7 +306,9 @@ export const EnhancedAIAnalysis: React.FC<{
 	}, [imageFile, aiPipeline, onResult, onError]);
 
 	if (error) {
-		return <AIAnalysisError error={error} retry={() => window.location.reload()} />;
+		return (
+			<AIAnalysisError error={error} retry={() => window.location.reload()} />
+		);
 	}
 
 	if (isProcessing) {

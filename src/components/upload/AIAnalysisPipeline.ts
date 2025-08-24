@@ -1,4 +1,9 @@
-import { gnewsSearch, gnewsTopHeadlines, googleSearch, youtubeSearch } from "@/core";
+import {
+	gnewsSearch,
+	gnewsTopHeadlines,
+	googleSearch,
+	youtubeSearch,
+} from "@/core";
 import { createFDCClient, newsapi } from "@/lib/api";
 
 export type WebDetect = {
@@ -31,7 +36,12 @@ export type CSEResult = {
 
 export type YTHit = { title: string; videoId: string };
 
-export type Nutrient = { id: number; name: string; unit: string; value: number };
+export type Nutrient = {
+	id: number;
+	name: string;
+	unit: string;
+	value: number;
+};
 
 export type FoodBlock = {
 	fdcId?: number;
@@ -128,10 +138,12 @@ export class AIAnalysisPipeline {
 	static async fetchYouTubeVideos(query: string): Promise<YTHit[]> {
 		try {
 			const results = await youtubeSearch(query);
-			return results?.items?.slice(0, 4).map((it: any) => ({
-				title: it.snippet?.title || it.title,
-				videoId: it.id?.videoId || it.videoId,
-			})) || [];
+			return (
+				results?.items?.slice(0, 4).map((it: any) => ({
+					title: it.snippet?.title || it.title,
+					videoId: it.id?.videoId || it.videoId,
+				})) || []
+			);
 		} catch (e) {
 			console.warn("YouTube Search error", e);
 			return [];
@@ -165,14 +177,38 @@ export class AIAnalysisPipeline {
 	determineCategory(meta: PipelineMeta): Category {
 		const q = `${meta.primaryQuery} ${meta.labels.join(" ")}`.toLowerCase();
 		const has = (...k: string[]) => k.some((s) => q.includes(s));
-		
+
 		if (has("calorie", "nutrition", "kcal", "ingredients", "fdc", "food"))
 			return "Food";
-		if (has("shirt", "t-shirt", "hoodie", "sneaker", "shoe", "jeans", "dress", "jacket"))
+		if (
+			has(
+				"shirt",
+				"t-shirt",
+				"hoodie",
+				"sneaker",
+				"shoe",
+				"jeans",
+				"dress",
+				"jacket",
+			)
+		)
 			return "Clothes";
 		if (has("tablet", "capsule", "mg", "rx", "prescription", "drug", "otc"))
 			return "Drugs";
-		if (has("laptop", "phone", "cpu", "gpu", "camera", "tech", "headphones", "keyboard", "ssd", "router"))
+		if (
+			has(
+				"laptop",
+				"phone",
+				"cpu",
+				"gpu",
+				"camera",
+				"tech",
+				"headphones",
+				"keyboard",
+				"ssd",
+				"router",
+			)
+		)
 			return "Technology";
 		return "Unknown";
 	}
@@ -187,7 +223,7 @@ export class AIAnalysisPipeline {
 				(await this.api.fdc.findFood(meta.primaryQuery, ["Branded"])) ||
 				(await this.api.fdc.findFood(meta.primaryQuery, ["Foundation"]));
 			if (!found) return {};
-			
+
 			const wanted = [208, 203, 204, 205, 269, 307, 601]; // kcals, protein, fat, carbs, sugars, sodium, cholesterol
 			const nutrs = await this.api.fdc.getFoodNutrients(found.fdcId, wanted);
 			const nutrients: Nutrient[] = (nutrs || []).map((n: any) => ({
@@ -241,7 +277,10 @@ export class AIAnalysisPipeline {
 		};
 	}
 
-	async runPipelineForImage(imageFile: { id: string; file: File }): Promise<PipelineResult> {
+	async runPipelineForImage(imageFile: {
+		id: string;
+		file: File;
+	}): Promise<PipelineResult> {
 		const detect = await this.reverseImage(imageFile.file);
 		const meta = this.extractMeta(detect);
 		const category = this.determineCategory(meta);

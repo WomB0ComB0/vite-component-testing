@@ -123,4 +123,3 @@ async function search(
 
 	return SearchRecommendation.assert(transformed);
 }
-

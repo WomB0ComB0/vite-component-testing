@@ -1,8 +1,9 @@
+import { Loader2, Upload } from "lucide-react";
+import type React from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Upload } from "lucide-react";
-import React, { useCallback, useMemo, useRef } from "react";
 
 export interface ImageUploadAreaProps {
 	/** Whether files are currently being uploaded */
@@ -60,22 +61,24 @@ const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
 
 	// Memoized drag area classes for better performance
 	const dragAreaClasses = useMemo(() => {
-		const baseClasses = "relative p-16 text-center transition-all duration-500 cursor-pointer group";
+		const baseClasses =
+			"relative p-16 text-center transition-all duration-500 cursor-pointer group";
 		const dragClasses = dragActive
 			? "border-accent bg-accent/5 scale-[1.02] shadow-2xl animate-pulse-glow"
 			: "hover:border-accent/60 hover:bg-accent/5 hover:scale-[1.01]";
 		const uploadClasses = isUploading ? "opacity-60 pointer-events-none" : "";
-		
+
 		return `${baseClasses} ${dragClasses} ${uploadClasses}`.trim();
 	}, [dragActive, isUploading]);
 
 	// Memoized icon container classes
 	const iconContainerClasses = useMemo(() => {
-		const baseClasses = "p-6 rounded-full transition-all duration-300 group-hover:scale-110";
+		const baseClasses =
+			"p-6 rounded-full transition-all duration-300 group-hover:scale-110";
 		const dragClasses = dragActive
 			? "bg-accent/20 animate-float"
 			: "bg-gradient-to-br from-accent/10 to-primary/10 group-hover:from-accent/20 group-hover:to-primary/20";
-		
+
 		return `${baseClasses} ${dragClasses}`.trim();
 	}, [dragActive]);
 
@@ -85,14 +88,14 @@ const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
 		const colorClasses = dragActive
 			? "text-accent"
 			: "text-muted-foreground group-hover:text-accent";
-		
+
 		return `${baseClasses} ${colorClasses}`.trim();
 	}, [dragActive]);
 
 	// Memoized format badges for better performance
 	const formatBadges = useMemo(() => {
 		if (!showFormatBadges) return null;
-		
+
 		return (
 			<div className="flex flex-wrap justify-center gap-2 pt-2">
 				{acceptedFormats.map((format) => (
@@ -121,7 +124,7 @@ const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
 	// Memoized upload button
 	const uploadButton = useMemo(() => {
 		if (isUploading) return null;
-		
+
 		return (
 			<Button
 				size="lg"
@@ -148,7 +151,7 @@ const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
 				aria-label="File upload area"
 				aria-describedby="upload-description"
 				onKeyDown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
+					if (e.key === "Enter" || e.key === " ") {
 						e.preventDefault();
 						handleClick();
 					}
@@ -173,17 +176,21 @@ const ImageUploadArea: React.FC<ImageUploadAreaProps> = ({
 				<div className="relative flex flex-col items-center space-y-6">
 					<div className={iconContainerClasses}>
 						{isUploading ? (
-							<Loader2 className="w-12 h-12 text-accent animate-spin" aria-label="Uploading files" />
+							<Loader2
+								className="w-12 h-12 text-accent animate-spin"
+								aria-label="Uploading files"
+							/>
 						) : (
 							<Upload className={uploadIconClasses} aria-label="Upload icon" />
 						)}
 					</div>
 
 					<div className="space-y-4">
-						<h3 className="text-2xl font-bold text-foreground">
-							{mainText}
-						</h3>
-						<p className="text-muted-foreground text-lg" id="upload-description">
+						<h3 className="text-2xl font-bold text-foreground">{mainText}</h3>
+						<p
+							className="text-muted-foreground text-lg"
+							id="upload-description"
+						>
 							{fileSizeText}
 						</p>
 
