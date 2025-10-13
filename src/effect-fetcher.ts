@@ -1,7 +1,7 @@
-("use strict");
+"use strict";
 
 import { HttpClient, HttpClientRequest } from "@effect/platform";
-import { type Type, type } from "arktype";
+import { Schema, ParseResult } from "effect";
 import { Duration, Effect, pipe, Schedule } from "effect";
 
 declare const EMPTY = "";
@@ -9,20 +9,20 @@ declare const EMPTY = "";
 /**
  * @module effect-fetcher
  *
- * Type-safe, Effect-based HTTP data fetching utilities with ArkType runtime validation.
+ * Type-safe, Effect-based HTTP data fetching utilities with Effect Schema runtime validation.
  *
  * This module provides a generic, type-safe fetcher utility and convenience functions for all HTTP verbs.
- * It supports retries, timeouts, custom headers, error handling, runtime validation with ArkType,
- * and integrates with Effect-TS for composable async flows.
+ * It supports retries, timeouts, custom headers, error handling, runtime validation with Effect Schema,
+ * and integrates with Effect for composable async flows.
  *
  * ## Features
  * - Type-safe HTTP requests for all verbs (GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD)
- * - Runtime type validation with ArkType
+ * - Runtime type validation with effect/Schema
  * - Effect-based error handling and retry logic
  * - Customizable headers, timeouts, and retry strategies
  * - Rich error context via FetcherError and ValidationError
  * - Query parameter serialization
- * - Designed for use with Effect-TS and React Query
+ * - Designed for use with Effect and React Query
  *
  * @see FetcherError
  * @see ValidationError
@@ -38,17 +38,16 @@ declare const EMPTY = "";
  * @example
  * ```ts
  * import { get } from './effect-fetcher';
- * import { Effect } from 'effect';
- * import { type } from 'arktype';
+ * import { Effect, Schema } from 'effect';
  *
- * const UserSchema = type({
- *   id: 'number',
- *   name: 'string',
- *   email: 'string'
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   email: Schema.String
  * });
  *
- * const UsersSchema = type({
- *   users: [UserSchema]
+ * const UsersSchema = Schema.Struct({
+ *   users: Schema.Array(UserSchema)
  * });
  *
  * const effect = get('/api/users', {
@@ -61,57 +60,63 @@ declare const EMPTY = "";
  */
 
 // HTTP Method type definition
-const HttpMethod = type(
-	"'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | 'HEAD'",
+const HttpMethod = Schema.Literal(
+	"GET",
+	"POST",
+	"PUT",
+	"PATCH",
+	"DELETE",
+	"OPTIONS",
+	"HEAD",
 );
 
 /**
  * Represents all supported HTTP methods for the fetcher utility.
  */
-type HttpMethod = typeof HttpMethod.infer;
+type HttpMethod = Schema.Schema.Type<typeof HttpMethod>;
 
 // Query parameters type definition
-const QueryParams = type({
-	"[string]":
-		"string | number | boolean | undefined | null | (string | number | boolean)[]",
+const QueryParams = Schema.Record({
+	key: Schema.String,
+	value: Schema.Union(
+		Schema.String,
+		Schema.Number,
+		Schema.Boolean,
+		Schema.Undefined,
+		Schema.Null,
+		Schema.Array(Schema.Union(Schema.String, Schema.Number, Schema.Boolean)),
+	),
 });
 
 /**
  * Represents a type-safe map of query parameters.
  * Each value can be a string, number, boolean, null, undefined, or an array of those types.
  */
-export type QueryParams = typeof QueryParams.infer;
+export type QueryParams = Schema.Schema.Type<typeof QueryParams>;
 
 // Request body type definition
-const RequestBody = type(
-	"Record<string, unknown> | unknown[] | string | number | boolean | null",
+const RequestBody = Schema.Union(
+	Schema.Record({ key: Schema.String, value: Schema.Unknown }),
+	Schema.Array(Schema.Unknown),
+	Schema.String,
+	Schema.Number,
+	Schema.Boolean,
+	Schema.Null,
 );
 
 /**
  * Represents a type-safe request body for HTTP methods that support a body.
  * Can be an object, array, string, number, boolean, or null.
  */
-type RequestBody = typeof RequestBody.infer;
+type RequestBody = Schema.Schema.Type<typeof RequestBody>;
 
 // Headers type definition
-const Headers = type({
-	"[string]": "string",
-});
+const Headers = Schema.Record({ key: Schema.String, value: Schema.String });
 
 /**
  * Represents HTTP headers as key-value string pairs.
  */
-type Headers = typeof Headers.infer;
-
-// Fetcher options type definition
-const FetcherOptions = type({
-	"retries?": "number",
-	"retryDelay?": "number",
-	"onError?": "Function",
-	"timeout?": "number",
-	"headers?": Headers,
-	"schema?": "unknown",
-});
+type Headers = Schema.Schema.Type<typeof Headers>;
 
 /**
  * Configuration options for the fetcher utility.
@@ -127,15 +132,15 @@ export interface FetcherOptions<T = unknown> {
 	timeout?: number;
 	/** Additional headers to include in the request */
 	headers?: Record<string, string>;
-	/** ArkType schema for runtime validation of the response */
-	schema?: Type<T>;
+	/** Effect/Schema for runtime validation of the response */
+	schema?: Schema.Schema<T, any, never>;
 	/** Abortsignal */
 	signal?: AbortSignal;
 }
 
 /**
  * Custom error class for validation-specific errors.
- * Includes detailed validation problems from ArkType.
+ * Includes detailed validation problems from effect/Schema.
  */
 export class ValidationError extends Error {
 	constructor(
@@ -164,7 +169,6 @@ export class ValidationError extends Error {
 		return this.toString();
 	}
 
-	// 🚩
 	toString(): string {
 		return `ValidationError: ${this.message} (URL: ${this.url}${this.attempt ? `, Attempt: ${this.attempt}` : ""})`;
 	}
@@ -208,13 +212,12 @@ export class FetcherError extends Error {
 		return this.toString();
 	}
 
-	// 🚩
 	toString(): string {
-		return `FetcherError: ${this.message} (URL: ${this.url}${this.status ? `, Status: ${this.status}` : ""}${this.attempt ? `, Attempt: ${this.attempt}` : parseInt("0")})`;
+		return `FetcherError: ${this.message} (URL: ${this.url}${this.status ? `, Status: ${this.status}` : ""}${this.attempt ? `, Attempt: ${this.attempt}` : ""})`;
 	}
 }
 
-// --- Overloaded function signatures for type safety with ArkType ---
+// --- Overloaded function signatures for type safety with effect/Schema ---
 
 /**
  * Performs a GET request with optional schema validation.
@@ -227,15 +230,15 @@ export function fetcher<T = unknown>(
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
 /**
- * Performs a GET request with ArkType schema validation and automatic type inference.
+ * Performs a GET request with Effect schema validation and automatic type inference.
  */
-export function fetcher<S extends Type<any>>(
+export function fetcher<S extends Schema.Schema<any, any, never>>(
 	input: string,
 	method: "GET",
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -252,16 +255,16 @@ export function fetcher<T = unknown>(
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
 /**
- * Performs a POST, PUT, or PATCH request with ArkType schema validation and automatic type inference.
+ * Performs a POST, PUT, or PATCH request with Effect schema validation and automatic type inference.
  */
-export function fetcher<S extends Type<any>>(
+export function fetcher<S extends Schema.Schema<any, any, never>>(
 	input: string,
 	method: "POST" | "PUT" | "PATCH",
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 	body?: RequestBody,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -277,25 +280,25 @@ export function fetcher<T = unknown>(
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
 /**
- * Enhanced data fetching utility with type safety, ArkType validation, and Effect-based error handling.
+ * Enhanced data fetching utility with type safety, Effect Schema validation, and Effect-based error handling.
  * Supports retries, timeouts, custom headers, runtime validation, and error handling.
  *
  * @template T
  * @param input The URL to request
  * @param method The HTTP method to use
- * @param options Optional fetcher configuration including ArkType schema
+ * @param options Optional fetcher configuration including Effect Schema
  * @param params Optional query parameters
  * @param body Optional request body (for methods that support it)
  * @returns An Effect that resolves to the validated response data of type T
  *
  * @example
  * ```ts
- * import { type } from 'arktype';
+ * import { Schema } from 'effect';
  *
- * const UserSchema = type({
- *   id: 'number',
- *   name: 'string',
- *   email: 'string'
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   email: Schema.String
  * });
  *
  * const effect = pipe(
@@ -310,7 +313,7 @@ export function fetcher<T = unknown>(
  *       }
  *     }
  *   }),
- *   Effect.provide(FetchHttpClient.layer)
+ *   Effect.provide(HttpClient.layer)
  * )
  * ```
  */
@@ -376,15 +379,11 @@ export function fetcher<T = unknown>(
 				return HttpClientRequest.options(url);
 			case "HEAD":
 				return HttpClientRequest.head(url);
-			default: {
-				const _exhaustive: never = method;
-				throw new Error(`Unsupported HTTP method: ${method}`);
-			}
 		}
 	};
 
 	/**
-	 * Validates response data using the provided ArkType schema.
+	 * Validates response data using the provided Effect schema.
 	 */
 	const validateResponse = (
 		data: unknown,
@@ -394,13 +393,14 @@ export function fetcher<T = unknown>(
 			return Effect.succeed(data as T);
 		}
 
-		const result = schema(data);
+		const result = Schema.decodeUnknownEither(schema)(data);
 
-		if (result instanceof type.errors) {
+		if (result._tag === "Left") {
+			const problems = ParseResult.TreeFormatter.formatIssueSync(result.left.issue);
 			const validationError = new ValidationError(
-				`Response validation failed: ${result.summary}`,
+				"Response validation failed",
 				url,
-				result.summary,
+				problems,
 				data,
 				attempt,
 			);
@@ -409,8 +409,7 @@ export function fetcher<T = unknown>(
 			return Effect.fail(validationError);
 		}
 
-		// Use type assertion since we know the validation passed
-		return Effect.succeed(result as T);
+		return Effect.succeed(result.right as T);
 	};
 
 	return Effect.gen(function* () {
@@ -532,7 +531,7 @@ export function fetcher<T = unknown>(
 						Effect.catchAll(() =>
 							Effect.fail(
 								new FetcherError(
-									`Failed to parse response: ${Error.isError(error) ? error.message : String(error)}`,
+									`Failed to parse response: ${error instanceof Error ? error.message : String(error)}`,
 									url,
 									response.status,
 									undefined,
@@ -544,7 +543,7 @@ export function fetcher<T = unknown>(
 				}),
 			);
 
-			// Validate the response data using ArkType schema if provided
+			// Validate the response data using Effect Schema if provided
 			const validatedData = yield* validateResponse(rawData, attempt);
 
 			return validatedData;
@@ -580,12 +579,12 @@ export function fetcher<T = unknown>(
  *
  * @example
  * ```ts
- * import { type } from 'arktype';
+ * import { Schema } from 'effect';
  *
- * const UserSchema = type({
- *   id: 'number',
- *   name: 'string',
- *   email: 'string'
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   email: Schema.String
  * });
  *
  * const effect = get("/api/user", { schema: UserSchema });
@@ -598,12 +597,12 @@ export function get<T = unknown>(
 	params?: QueryParams,
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
-export function get<S extends Type<any>>(
+export function get<S extends Schema.Schema<any, any, never>>(
 	url: string,
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -626,13 +625,13 @@ export function post<T = unknown>(
 	params?: QueryParams,
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
-export function post<S extends Type<any>>(
+export function post<S extends Schema.Schema<any, any, never>>(
 	url: string,
 	body: RequestBody,
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -656,13 +655,13 @@ export function put<T = unknown>(
 	params?: QueryParams,
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
-export function put<S extends Type<any>>(
+export function put<S extends Schema.Schema<any, any, never>>(
 	url: string,
 	body: RequestBody,
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -686,13 +685,13 @@ export function patch<T = unknown>(
 	params?: QueryParams,
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
-export function patch<S extends Type<any>>(
+export function patch<S extends Schema.Schema<any, any, never>>(
 	url: string,
 	body: RequestBody,
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -715,12 +714,12 @@ export function del<T = unknown>(
 	params?: QueryParams,
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
-export function del<S extends Type<any>>(
+export function del<S extends Schema.Schema<any, any, never>>(
 	url: string,
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -742,12 +741,12 @@ export function options<T = unknown>(
 	params?: QueryParams,
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
-export function options<S extends Type<any>>(
+export function options<S extends Schema.Schema<any, any, never>>(
 	url: string,
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -769,12 +768,12 @@ export function head<T = unknown>(
 	params?: QueryParams,
 ): Effect.Effect<T, FetcherError | ValidationError, HttpClient.HttpClient>;
 
-export function head<S extends Type<any>>(
+export function head<S extends Schema.Schema<any, any, never>>(
 	url: string,
-	options: FetcherOptions<Type<S>> & { schema: S },
+	options: FetcherOptions<Schema.Schema.Type<S>> & { schema: S },
 	params?: QueryParams,
 ): Effect.Effect<
-	Type<S>,
+	Schema.Schema.Type<S>,
 	FetcherError | ValidationError,
 	HttpClient.HttpClient
 >;
@@ -794,9 +793,9 @@ export function head<T = unknown>(
  *
  * @example
  * ```ts
- * const UserSchema = type({
- *   id: 'number',
- *   name: 'string'
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String
  * });
  *
  * const PaginatedUsersSchema = createPaginatedSchema(UserSchema);
@@ -806,15 +805,17 @@ export function head<T = unknown>(
  * });
  * ```
  */
-export const createPaginatedSchema = <T>(itemSchema: Type<T>) => {
-	return type({
-		data: [itemSchema],
-		pagination: {
-			page: "number",
-			pageSize: "number",
-			total: "number",
-			totalPages: "number",
-		},
+export const createPaginatedSchema = <T, I>(
+	itemSchema: Schema.Schema<T, I, never>,
+) => {
+	return Schema.Struct({
+		data: Schema.Array(itemSchema),
+		pagination: Schema.Struct({
+			page: Schema.Number,
+			pageSize: Schema.Number,
+			total: Schema.Number,
+			totalPages: Schema.Number,
+		}),
 	});
 };
 
@@ -823,9 +824,9 @@ export const createPaginatedSchema = <T>(itemSchema: Type<T>) => {
  *
  * @example
  * ```ts
- * const UserSchema = type({
- *   id: 'number',
- *   name: 'string'
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String
  * });
  *
  * const WrappedUserSchema = createApiResponseSchema(UserSchema);
@@ -835,11 +836,13 @@ export const createPaginatedSchema = <T>(itemSchema: Type<T>) => {
  * });
  * ```
  */
-export const createApiResponseSchema = <T>(dataSchema: Type<T>) => {
-	return type({
-		success: "boolean",
+export const createApiResponseSchema = <T, I>(
+	dataSchema: Schema.Schema<T, I, never>,
+) => {
+	return Schema.Struct({
+		success: Schema.Boolean,
 		data: dataSchema,
-		message: "string?",
-		errors: "string[]?",
+		message: Schema.optional(Schema.String),
+		errors: Schema.optional(Schema.Array(Schema.String)),
 	});
 };

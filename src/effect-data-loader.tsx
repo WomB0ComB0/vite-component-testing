@@ -7,8 +7,7 @@ import {
 	useQueryClient,
 	useSuspenseQuery,
 } from "@tanstack/react-query";
-import type { Type } from "arktype";
-import { Effect, pipe } from "effect";
+import { Effect, pipe, Schema } from "effect";
 import React, { Suspense, useCallback, useMemo } from "react";
 import { ClientError } from "./client-error.tsx";
 import {
@@ -25,15 +24,15 @@ import { parseCodePath } from "./util/utils.ts";
 /**
  * @module effect-data-loader
  *
- * Enhanced DataLoader for React using React Query, Effect-TS, and ArkType validation.
+ * Enhanced DataLoader for React using React Query, Effect, and Effect Schema validation.
  *
  * This module provides a generic, type-safe React component and hook for loading data asynchronously
  * with advanced error handling, runtime validation, caching, and developer experience. It is designed
- * to work with Effect-TS, ArkType, and React Query, supporting features like retries, timeouts,
+ * to work with Effect, Effect Schema, and React Query, supporting features like retries, timeouts,
  * schema validation, optimistic updates, and more.
  *
  * ## Features
- * - Type-safe data loading for React components with ArkType schema validation
+ * - Type-safe data loading for React components with Effect Schema validation
  * - Suspense support
  * - Runtime type validation with detailed error messages
  * - Customizable error and loading components
@@ -48,12 +47,12 @@ import { parseCodePath } from "./util/utils.ts";
  * @example
  * ```tsx
  * import { DataLoader } from './effect-data-loader';
- * import { type } from 'arktype';
+ * import { Schema } from 'effect';
  *
- * const UserSchema = type({
- *   id: 'number',
- *   name: 'string',
- *   email: 'string'
+ * const UserSchema = Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   email: Schema.String
  * });
  *
  * function UserList() {
@@ -67,11 +66,6 @@ import { parseCodePath } from "./util/utils.ts";
  * }
  * ```
  */
-
-/**
- * Utility type to extract the inferred type from an ArkType Type
- */
-type InferArkType<T> = T extends Type<infer U> ? U : never;
 
 /**
  * Enhanced render props with additional query state and actions.
@@ -139,32 +133,33 @@ export interface DataLoaderProps<T> extends BaseDataLoaderProps<T> {
 	children:
 		| ((data: T) => React.ReactNode)
 		| ((data: T, utils: DataLoaderRenderProps<T>) => React.ReactNode);
-	/** ArkType schema for runtime validation (optional) */
+	/** Effect Schema for runtime validation (optional) */
 	schema?: never;
 }
 
 /**
- * Props for DataLoader with ArkType schema (automatic type inference).
+ * Props for DataLoader with Effect Schema (automatic type inference).
  */
-export interface DataLoaderPropsWithSchema<S extends Type<any>>
-	extends BaseDataLoaderProps<InferArkType<S>> {
+export interface DataLoaderPropsWithSchema<
+	S extends Schema.Schema<any, any, never>,
+> extends BaseDataLoaderProps<Schema.Schema.Type<S>> {
 	/**
 	 * Render prop that receives validated data and optional utilities.
 	 */
 	children:
-		| ((data: InferArkType<S>) => React.ReactNode)
+		| ((data: Schema.Schema.Type<S>) => React.ReactNode)
 		| ((
-				data: InferArkType<S>,
-				utils: DataLoaderRenderProps<InferArkType<S>>,
+				data: Schema.Schema.Type<S>,
+				utils: DataLoaderRenderProps<Schema.Schema.Type<S>>,
 		  ) => React.ReactNode);
-	/** ArkType schema for runtime validation */
+	/** Effect Schema for runtime validation */
 	schema: S;
 	/** Fetcher options with schema */
-	options?: FetcherOptions<InferArkType<S>> & { schema: S };
+	options?: FetcherOptions<Schema.Schema.Type<S>> & { schema: S };
 }
 
 /**
- * Enhanced DataLoader component with ArkType validation, better error handling, caching, and developer experience.
+ * Enhanced DataLoader component with Effect Schema validation, better error handling, caching, and developer experience.
  *
  * @example Without schema
  * ```tsx
@@ -175,11 +170,11 @@ export interface DataLoaderPropsWithSchema<S extends Type<any>>
  *
  * @example With schema (automatic type inference)
  * ```tsx
- * const UsersSchema = type([{
- *   id: 'number',
- *   name: 'string',
- *   email: 'string'
- * }]);
+ * const UsersSchema = Schema.Array(Schema.Struct({
+ *   id: Schema.Number,
+ *   name: Schema.String,
+ *   email: Schema.String
+ * }));
  *
  * <DataLoader url="/api/users" schema={UsersSchema}>
  *   {(users) => <UserList users={users} />} // users is fully typed!
@@ -189,10 +184,13 @@ export interface DataLoaderPropsWithSchema<S extends Type<any>>
 export function DataLoader<T = unknown>(
 	props: DataLoaderProps<T>,
 ): React.ReactElement;
-export function DataLoader<S extends Type<any>>(
+export function DataLoader<S extends Schema.Schema<any, any, never>>(
 	props: DataLoaderPropsWithSchema<S>,
 ): React.ReactElement;
-export function DataLoader<T = unknown, S extends Type<any> = any>({
+export function DataLoader<
+	T = unknown,
+	S extends Schema.Schema<any, any, never> = any,
+>({
 	children,
 	url,
 	queryOptions = {},
@@ -209,7 +207,6 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 	refetchOnWindowFocus = false,
 	refetchOnReconnect = true,
 	schema,
-	...props // 🚩
 }: (DataLoaderProps<T> | DataLoaderPropsWithSchema<S>) & {
 	schema?: S;
 }): React.ReactElement {
@@ -220,7 +217,7 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 		if (queryKey) return queryKey;
 		const headers = options?.headers;
 		const timeout = options?.timeout;
-		const schemaKey = schema ? `schema:${schema.toString()}` : null;
+		const schemaKey = schema ? `schema:${Schema.format(schema)}` : null;
 		const keyArray = [
 			"dataloader",
 			url,
@@ -234,7 +231,7 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 
 	// Enhanced fetcher options with better defaults and schema support
 	const fetcherOptions = useMemo((): FetcherOptions<any> => {
-		const baseOptions = {
+		const baseOptions: FetcherOptions<any> = {
 			retries: 3,
 			retryDelay: 1_000,
 			timeout: 30_000,
@@ -254,10 +251,10 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 				}
 
 				// Call user-provided error handler
-				if (onError && Error.isError(err)) onError(err);
+				if (onError && err instanceof Error) onError(err);
 			},
 			...(options || {}),
-		} as FetcherOptions<any>;
+		};
 
 		if (schema) return { ...baseOptions, schema };
 
@@ -267,15 +264,10 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 	// Memoized query function with schema support
 	const queryFn = useCallback(async () => {
 		try {
-			const effect = schema
-				? pipe(
-						get(url, fetcherOptions, params),
-						Effect.provide(FetchHttpClient.layer),
-					)
-				: pipe(
-						get<T>(url, fetcherOptions, params),
-						Effect.provide(FetchHttpClient.layer),
-					);
+			const effect = pipe(
+				get(url, fetcherOptions, params),
+				Effect.provide(FetchHttpClient.layer),
+			);
 
 			const result = await Effect.runPromise(effect);
 
@@ -297,23 +289,23 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 
 			// Wrap unexpected errors
 			throw new FetcherError(
-				Error.isError(error) ? error.message : "Unknown error occurred",
+				error instanceof Error ? error.message : "Unknown error occurred",
 				url,
 				undefined,
 				error,
 			);
 		}
-	}, [url, fetcherOptions, params, transform, onSuccess, schema]);
+	}, [url, fetcherOptions, params, transform, onSuccess]);
 
 	// Enhanced query options
 	const queryOptionsWithDefaults = useMemo(() => {
 		const baseOptions: UseSuspenseQueryOptions<any, Error, any, QueryKey> = {
 			queryKey: finalQueryKey as QueryKey,
 			queryFn,
-			staleTime: staleTime as number,
-			refetchInterval: refetchInterval as number,
-			refetchOnWindowFocus: refetchOnWindowFocus as boolean,
-			refetchOnReconnect: refetchOnReconnect as boolean,
+			staleTime,
+			refetchInterval,
+			refetchOnWindowFocus,
+			refetchOnReconnect,
 			retry: (failureCount: number, error: unknown) => {
 				// Don't retry client errors (4xx)
 				if (
@@ -329,7 +321,7 @@ export function DataLoader<T = unknown, S extends Type<any> = any>({
 			},
 			retryDelay: (attemptIndex: number) =>
 				Math.min(1_000 * 2 ** attemptIndex, 30_000),
-			...(queryOptions || {}),
+			...queryOptions,
 		};
 
 		return baseOptions;
@@ -422,29 +414,22 @@ export function useDataLoader<T = unknown>(
 	>,
 ): ReturnType<typeof useSuspenseQuery<T, Error, T, QueryKey>>;
 
-export function useDataLoader<S extends Type<any>>(
+export function useDataLoader<S extends Schema.Schema<any, any, never>>(
 	url: string,
 	options: Omit<
 		DataLoaderPropsWithSchema<S>,
 		"children" | "LoadingComponent" | "ErrorComponent"
 	>,
 ): ReturnType<
-	typeof useSuspenseQuery<InferArkType<S>, Error, InferArkType<S>, QueryKey>
+	typeof useSuspenseQuery<
+		Schema.Schema.Type<S>,
+		Error,
+		Schema.Schema.Type<S>,
+		QueryKey
+	>
 >;
 
-export function useDataLoader<T = unknown, S extends Type<any> = any>(
-	url: string,
-	options: (
-		| Omit<
-				DataLoaderProps<T>,
-				"children" | "LoadingComponent" | "ErrorComponent"
-		  >
-		| Omit<
-				DataLoaderPropsWithSchema<S>,
-				"children" | "LoadingComponent" | "ErrorComponent"
-		  >
-	) & { schema?: S } = {},
-) {
+export function useDataLoader(url: string, options: any = {}) {
 	const {
 		queryOptions = {},
 		options: fetcherOptions = {},
@@ -464,7 +449,7 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 		if (queryKey) return queryKey;
 		const headers = (fetcherOptions as any)?.headers;
 		const timeout = (fetcherOptions as any)?.timeout;
-		const schemaKey = schema ? `schema:${schema.toString()}` : null;
+		const schemaKey = schema ? `schema:${Schema.format(schema)}` : null;
 		const keyArray = [
 			"dataloader",
 			url,
@@ -488,7 +473,7 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 					);
 				}
 
-				if (typeof onError === "function" && Error.isError(err)) {
+				if (typeof onError === "function" && err instanceof Error) {
 					onError(err);
 				}
 			},
@@ -503,15 +488,10 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 	}, [fetcherOptions, onError, schema]);
 
 	const queryFn = useCallback(async () => {
-		const effect = schema
-			? pipe(
-					get(url, enhancedFetcherOptions, params as QueryParams),
-					Effect.provide(FetchHttpClient.layer),
-				)
-			: pipe(
-					get<T>(url, enhancedFetcherOptions, params as QueryParams),
-					Effect.provide(FetchHttpClient.layer),
-				);
+		const effect = pipe(
+			get(url, enhancedFetcherOptions, params as QueryParams),
+			Effect.provide(FetchHttpClient.layer),
+		);
 
 		const result = await Effect.runPromise(effect);
 		const finalResult =
@@ -522,16 +502,16 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 		}
 
 		return finalResult;
-	}, [url, enhancedFetcherOptions, params, transform, onSuccess, schema]);
+	}, [url, enhancedFetcherOptions, params, transform, onSuccess]);
 
 	const queryOptionsWithDefaults = useMemo(() => {
 		const baseOptions: UseSuspenseQueryOptions<any, Error, any, QueryKey> = {
 			queryKey: finalQueryKey as QueryKey,
 			queryFn,
-			staleTime: staleTime as number,
-			refetchInterval: refetchInterval as number,
-			refetchOnWindowFocus: refetchOnWindowFocus as boolean,
-			refetchOnReconnect: refetchOnReconnect as boolean,
+			staleTime,
+			refetchInterval,
+			refetchOnWindowFocus,
+			refetchOnReconnect,
 			retry: (failureCount: number, error: unknown) => {
 				if (
 					error instanceof ValidationError ||
@@ -546,7 +526,7 @@ export function useDataLoader<T = unknown, S extends Type<any> = any>(
 			},
 			retryDelay: (attemptIndex: number) =>
 				Math.min(1_000 * 2 ** attemptIndex, 30_000),
-			...(queryOptions || {}),
+			...queryOptions,
 		};
 
 		return baseOptions;

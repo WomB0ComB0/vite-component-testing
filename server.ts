@@ -1,5 +1,3 @@
-import { spawn } from "node:child_process";
-import fs from "node:fs";
 import { FetchHttpClient } from "@effect/platform";
 import type { HttpClient } from "@effect/platform/HttpClient";
 import { cors } from "@elysiajs/cors";
@@ -17,6 +15,8 @@ import { Elysia } from "elysia";
 import { ip } from "elysia-ip";
 import { DefaultContext, type Generator, rateLimit } from "elysia-rate-limit";
 import { elysiaHelmet } from "elysiajs-helmet";
+import { spawn } from "node:child_process";
+import fs from "node:fs";
 import { logger } from "./logger";
 import { get } from "./src/effect-fetcher";
 import { GNewsResponse as GNewsResponseSchema } from "./src/lib/api/gnews";
@@ -325,24 +325,30 @@ const utilityRoutes = new Elysia()
  */
 const apiRoutes = new Elysia({ prefix: "/api" })
 	.post(
-		"/reverse-image",
-		async ({ request }) => {
+		"/google/reverse-image",
+		async ({ body }) => {
 			return record("reverse-image.post", async () => {
-				const form = await request.formData();
+				// Use Elysia's body parameter instead of request.formData()
+				const form = body as FormData;
 				const file = form.get("file");
+				
 				if (!(file instanceof File)) {
 					return new Response(JSON.stringify({ error: "No file provided" }), {
 						status: 400,
+						headers: { "content-type": "application/json" },
 					});
 				}
+				
 				if (!/^image\//.test(file.type)) {
 					return new Response(
 						JSON.stringify({ error: "Unsupported media type" }),
 						{
 							status: 415,
+							headers: { "content-type": "application/json" },
 						},
 					);
 				}
+				
 				const ab = await file.arrayBuffer();
 				const content = Buffer.from(ab);
 
@@ -355,6 +361,7 @@ const apiRoutes = new Elysia({ prefix: "/api" })
 			});
 		},
 		{
+			type: "formdata", // Tell Elysia to expect FormData
 			detail: {
 				summary: "Reverse image search",
 				description:
@@ -523,8 +530,9 @@ const apiRoutes = new Elysia({ prefix: "/api" })
 			},
 		},
 	)
+  // done
 	.get(
-		"/youtube/search",
+		"/google/youtube/search",
 		async ({ query }) => {
 			return record("youtube.search.get", async () => {
 				const p = query as Record<string, string>;

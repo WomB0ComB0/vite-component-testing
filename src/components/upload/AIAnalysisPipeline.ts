@@ -6,18 +6,315 @@ import {
 } from "@/core";
 import { createFDCClient, newsapi } from "@/lib/api";
 
+export type Category =
+  | "Food"
+  | "Clothes"
+  | "Drugs"
+  | "Technology"
+  | "Unknown";
+
+export type Primitive =
+  | "News"
+  | "PriceChangeHistory"
+  | "ArticlesEdited";
+
+export interface PipelineMeta {
+  primaryQuery: string;
+  labels: string[];
+  // Optional extra context if you have it:
+  brand?: string | null;
+  source?: string | null;       // e.g., "amazon", "wikipedia", "bestbuy"
+  locale?: string | null;       // e.g., "en-US"
+  description?: string | null;  // scraped snippet
+  attributes?: Record<string, string | number | boolean | null | undefined>;
+}
+
+export interface CategoryEvidence {
+  matched: string[];     // tokens/regex labels that hit
+  blocked: string[];     // negatives that fired (if any)
+  score: number;         // final score after weights
+}
+
+export interface CategoryDecision {
+  category: Category;
+  evidenceByCategory: Record<Category, CategoryEvidence>;
+}
+
+export interface PrimitiveDecision {
+  primitives: Primitive[];
+  evidence: Record<Primitive, string[]>;
+}
+
+type Token = string | RegExp;
+
+interface CategoryRule {
+  include: Token[];
+  exclude?: Token[];
+  weight?: number; // multiplier on matches
+}
+
+type Ruleset = Record<Category, CategoryRule>;
+
+const rx = {
+  mg: /\b\d+\s?mg\b/i,
+  rx: /\b(rx|prescription)\b/i,
+  otc: /\b(otc|over[-\s]?the[-\s]?counter)\b/i,
+  cpuGpu: /\b(cpu|gpu|graphics|processor|nvidia|amd|intel)\b/i,
+  storage: /\b(ssd|nvme|m\.?2|sata|hdd)\b/i,
+  apparelSizes: /\b(xs|s|m|l|xl|xxl|xxxl)\b/i,
+  nutrition: /\b(kcal|calorie|nutrition|macros?)\b/i,
+  ingredients: /\bingredients?\b/i,
+  shoeSizes: /\b(us|eu|uk)\s?\d{1,2}(\.\d)?\b/i,
+};
+
+const CATEGORY_RULES: Ruleset = {
+  Food: {
+    include: [
+      "calorie", "nutrition", "kcal", "fdc", "food", "ingredients",
+      "protein", "carb", "carbs", "fat", "sugar", "vitamin", rx.nutrition, rx.ingredients,
+      "grocery", "usda", "serving size", "per 100g",
+    ],
+    exclude: ["pet food", "dog food", "cat food"], // tweak as needed
+    weight: 1.0,
+  },
+  Clothes: {
+    include: [
+      "shirt", "t-shirt", "tee", "hoodie", "sneaker", "shoe", "jeans", "dress", "jacket",
+      "skirt", "top", "sweater", "outerwear", "denim", "athleisure", rx.apparelSizes, rx.shoeSizes,
+    ],
+    exclude: ["shoe rack", "shoe cabinet", "dress form"], // home items, not apparel
+    weight: 1.0,
+  },
+  Drugs: {
+    include: [
+      "tablet", "capsule", rx.mg, rx.rx, rx.otc, "drug", "medication",
+      "ibuprofen", "acetaminophen", "paracetamol", "aspirin",
+      "antibiotic", "antihistamine", "supplement",
+    ],
+    exclude: ["drug test kit", "pill organizer", "supplement shaker"], // accessories
+    weight: 1.1, // slightly boost because “mg”/“rx” are strong signals
+  },
+  Technology: {
+    include: [
+      "laptop", "phone", "smartphone", "tablet", "camera", "headphones",
+      "keyboard", "router", "monitor", "pc", "desktop", "mouse",
+      "macbook", "iphone", "android", "chromebook", "charger", "power bank",
+      "ssd", "gpu", "graphics card", "cpu", "motherboard", "ram", "router",
+      rx.cpuGpu, rx.storage,
+    ],
+    exclude: ["phone case", "laptop sleeve", "keyboard tray"], // accessories if you want to treat separately
+    weight: 0.95,
+  },
+  Unknown: {
+    include: [],
+  },
+};
+
+const SOURCE_HINTS: Partial<Record<Category, Token[]>> = {
+  Food: ["fdc", "usda", "myfitnesspal"],
+  Technology: ["bestbuy", "newegg", "microcenter"],
+  Clothes: ["zara", "h&m", "uniqlo", "asos"],
+  Drugs: ["drugs.com", "rxlist", "nih", "medlineplus", "pharmacy"],
+};
+
+const PRIMITIVE_RULES: Record<Primitive, Token[]> = {
+  News: [
+    "breaking", "headline", "reported", "coverage", "press release", "news", "announced",
+    /\b(released?|launch(ed)?|unveil(ed)?)\b/i,
+  ],
+  PriceChangeHistory: [
+    "price history", "price change", "price drop", "discount", "msrp", "deal", "sale", "camelcamelcamel",
+  ],
+  ArticlesEdited: [
+    "revision", "edit history", "article edit", "diff", "changelog", "wiki", "wikipedia", "edited on",
+  ],
+};
+
+const LOWER = (s?: string | null) => (s ?? "").toLowerCase();
+
+function squash(meta: PipelineMeta): string {
+  const parts = [
+    meta.primaryQuery,
+    ...meta.labels,
+    meta.brand,
+    meta.source,
+    meta.locale,
+    meta.description,
+    ...Object.entries(meta.attributes ?? {}).map(([k, v]) => `${k}:${v}`),
+  ].filter(Boolean) as string[];
+
+  const blob = parts.join(" ").toLowerCase();
+  return blob
+    .replace(/[_\-]+/g, " ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function countMatches(blob: string, tokens: Token[]): { hits: string[]; count: number } {
+  const hits: string[] = [];
+  let count = 0;
+  for (const t of tokens) {
+    if (typeof t === "string") {
+      if (blob.includes(t.toLowerCase())) {
+        hits.push(t);
+        count++;
+      }
+    } else {
+      const m = blob.match(t);
+      if (m) {
+        hits.push(t.source);
+        count += m.length > 0 ? 1 : 0;
+      }
+    }
+  }
+  return { hits, count };
+}
+
+function anyMatch(blob: string, tokens?: Token[]): string[] {
+  if (!tokens || tokens.length === 0) return [];
+  return tokens.flatMap(t => {
+    if (typeof t === "string") return blob.includes(t.toLowerCase()) ? [t] : [];
+    return t.test(blob) ? [t.source] : [];
+  });
+}
+
+export class ProductClassifier {
+  determineCategory(meta: PipelineMeta): CategoryDecision {
+    const blob = squash(meta);
+
+    const evidenceByCategory = Object.fromEntries(
+      (Object.keys(CATEGORY_RULES) as Category[]).map((cat) => {
+        const rule = CATEGORY_RULES[cat];
+        const inc = countMatches(blob, rule.include);
+        const exc = anyMatch(blob, rule.exclude);
+        let score = inc.count;
+
+        const hints = SOURCE_HINTS[cat];
+        if (hints) score += countMatches(blob, hints).count * 0.5;
+
+        if (rule.weight) score *= rule.weight;
+
+        if (exc.length) score -= Math.min(1, exc.length) * 0.75;
+
+        return [cat, { matched: inc.hits, blocked: exc, score } as CategoryEvidence];
+      }),
+    ) as Record<Category, CategoryEvidence>;
+
+    const best = (Object.keys(evidenceByCategory) as Category[])
+      .filter(c => c !== "Unknown")
+      .map((c) => [c, evidenceByCategory[c].score] as const)
+      .sort((a, b) => b[1] - a[1])[0];
+
+    const category: Category =
+      best && best[1] >= 1 ? (best[0] as Category) : "Unknown";
+
+    return { category, evidenceByCategory };
+  }
+
+  detectPrimitives(meta: PipelineMeta): PrimitiveDecision {
+    const blob = squash(meta);
+
+    const primitives: Primitive[] = [];
+    const evidence: Record<Primitive, string[]> = {
+      News: [],
+      PriceChangeHistory: [],
+      ArticlesEdited: [],
+    };
+
+    (Object.keys(PRIMITIVE_RULES) as Primitive[]).forEach((p) => {
+      const hits = anyMatch(blob, PRIMITIVE_RULES[p]);
+      if (hits.length) {
+        primitives.push(p);
+        evidence[p] = hits;
+      }
+    });
+
+    return { primitives, evidence };
+  }
+
+  routeCategory(category: Category): string[] {
+    switch (category) {
+      case "Food":
+        return [
+          "Find Nearest Location",
+          "Retrieve Nutrient Information",
+          "Get Price Change History",
+        ];
+      case "Clothes":
+        return [
+          "Find Nearest Location",
+          "Retrieve Product Reviews",
+          "Get Price Change History",
+        ];
+      case "Drugs":
+        return [
+          "Find Nearest Location",
+          "Get Price Change History",
+        ];
+      case "Technology":
+        return ["No Designated Task"];
+      default:
+        return [];
+    }
+  }
+
+  routePrimitives(primitives: Primitive[]): string[] {
+    const steps: string[] = [];
+    if (primitives.includes("News")) {
+      steps.push(
+        "News Source Identification",
+        "News Sentiment Analysis",
+        "News Summarization",
+      );
+    }
+    if (primitives.includes("PriceChangeHistory")) {
+      steps.push(
+        "Price Change Source Identification",
+        "Price Change Trend Analysis",
+        "Price Change Alert Generation",
+      );
+    }
+    if (primitives.includes("ArticlesEdited")) {
+      steps.push(
+        "Article Edit Source Identification",
+        "Article Edit History Analysis",
+        "Article Edit Impact Assessment",
+      );
+    }
+    return steps;
+  }
+
+  plan(meta: PipelineMeta) {
+    const categoryDecision = this.determineCategory(meta);
+    const primitiveDecision = this.detectPrimitives(meta);
+
+    const categoryTasks = this.routeCategory(categoryDecision.category);
+    const primitiveTasks = this.routePrimitives(primitiveDecision.primitives);
+
+    return {
+      category: categoryDecision.category,
+      categoryEvidence: categoryDecision.evidenceByCategory[categoryDecision.category],
+			evidenceByCategory: categoryDecision.evidenceByCategory,
+      primitiveSignals: primitiveDecision.primitives,
+      primitiveEvidence: primitiveDecision.evidence,
+      nextSteps: {
+        categoryTasks,
+        primitiveTasks,
+        outputTriggers: [
+          ...(primitiveTasks.some(s => /Summarization|Alert Generation|Impact Assessment/.test(s))
+            ? ["Output Designated Information"]
+            : []),
+        ],
+      },
+    };
+  }
+}
+
 export type WebDetect = {
 	webEntities: { description?: string; score?: number }[];
 	fullMatchingImages: { url: string }[];
 	partialMatchingImages: { url: string }[];
 	pagesWithMatchingImages: { url: string; pageTitle?: string }[];
-};
-
-export type Category = "Food" | "Clothes" | "Drugs" | "Technology" | "Unknown";
-
-export type PipelineMeta = {
-	primaryQuery: string;
-	labels: string[];
 };
 
 export type NewsHit = {
@@ -49,9 +346,15 @@ export type FoodBlock = {
 	nutrients?: Nutrient[];
 };
 
+// Updated Insights to include detailed classifier output
 export type Insights = {
 	meta: PipelineMeta;
 	category: Category;
+	categoryEvidence?: CategoryEvidence;
+	evidenceByCategory?: Record<Category, CategoryEvidence>;
+	primitiveSignals?: Primitive[];
+	primitiveEvidence?: Record<Primitive, string[]>;
+	nextSteps?: any; // Contains planned tasks from the classifier
 	news?: NewsHit[];
 	cse?: CSEResult[];
 	youtube?: YTHit[];
@@ -70,19 +373,20 @@ export class AIAnalysisPipeline {
 		fdc: ReturnType<typeof createFDCClient>;
 		news: typeof newsapi;
 	};
+	private classifier: ProductClassifier;
 
 	constructor(foodApiKey: string) {
 		this.api = {
 			fdc: createFDCClient(foodApiKey),
 			news: newsapi,
 		};
+		this.classifier = new ProductClassifier();
 	}
 
-	// DataLoader compatible methods for external API calls
 	static async reverseImageSearch(file: File): Promise<WebDetect> {
 		const fd = new FormData();
 		fd.append("file", file, file.name);
-		const res = await fetch("/api/reverse-image", { method: "POST", body: fd });
+		const res = await fetch("/api/google/reverse-image", { method: "POST", body: fd });
 		if (!res.ok) {
 			const err = await res.json().catch(() => ({}));
 			throw new Error(`Vision error: ${JSON.stringify(err)}`);
@@ -150,7 +454,6 @@ export class AIAnalysisPipeline {
 		}
 	}
 
-	// Instance methods for food data (requires API key)
 	async reverseImage(file: File): Promise<WebDetect> {
 		return AIAnalysisPipeline.reverseImageSearch(file);
 	}
@@ -171,46 +474,17 @@ export class AIAnalysisPipeline {
 		const extra = labels[1] ?? pageTerms[1] ?? "";
 		const primaryQuery = [primary, extra].filter(Boolean).join(" ");
 
-		return { primaryQuery: primaryQuery || "product", labels };
-	}
+		const description = (d.webEntities || [])
+			.map((e) => e.description)
+			.filter(Boolean)
+			.join(", ");
 
-	determineCategory(meta: PipelineMeta): Category {
-		const q = `${meta.primaryQuery} ${meta.labels.join(" ")}`.toLowerCase();
-		const has = (...k: string[]) => k.some((s) => q.includes(s));
-
-		if (has("calorie", "nutrition", "kcal", "ingredients", "fdc", "food"))
-			return "Food";
-		if (
-			has(
-				"shirt",
-				"t-shirt",
-				"hoodie",
-				"sneaker",
-				"shoe",
-				"jeans",
-				"dress",
-				"jacket",
-			)
-		)
-			return "Clothes";
-		if (has("tablet", "capsule", "mg", "rx", "prescription", "drug", "otc"))
-			return "Drugs";
-		if (
-			has(
-				"laptop",
-				"phone",
-				"cpu",
-				"gpu",
-				"camera",
-				"tech",
-				"headphones",
-				"keyboard",
-				"ssd",
-				"router",
-			)
-		)
-			return "Technology";
-		return "Unknown";
+		return {
+			primaryQuery: primaryQuery || "product",
+			labels,
+			description,
+			source: d.pagesWithMatchingImages?.[0]?.url.match(/https?:\/\/([^\/]+)/)?.[1] || null
+		};
 	}
 
 	async getNews(meta: PipelineMeta): Promise<NewsHit[]> {
@@ -283,7 +557,12 @@ export class AIAnalysisPipeline {
 	}): Promise<PipelineResult> {
 		const detect = await this.reverseImage(imageFile.file);
 		const meta = this.extractMeta(detect);
-		const category = this.determineCategory(meta);
+
+		// Use the new, more powerful classifier
+		const plan = this.classifier.plan(meta);
+		const category = plan.category;
+
+		// Fetch news (consistent with original logic, now supported by primitive detection)
 		const news = await this.getNews(meta);
 
 		let cat: Partial<Insights> = {};
@@ -296,7 +575,7 @@ export class AIAnalysisPipeline {
 		} else if (category === "Drugs") {
 			const { cse, youtube } = await this.runDrugsPipeline(meta);
 			cat = { cse, youtube };
-		} else {
+		} else { // Covers "Technology" and "Unknown"
 			const { cse, youtube } = await this.runTechPipeline(meta);
 			cat = { cse, youtube };
 		}
@@ -305,6 +584,11 @@ export class AIAnalysisPipeline {
 			meta,
 			category,
 			news,
+			categoryEvidence: plan.categoryEvidence,
+			evidenceByCategory: plan.evidenceByCategory,
+			primitiveSignals: plan.primitiveSignals,
+			primitiveEvidence: plan.primitiveEvidence,
+			nextSteps: plan.nextSteps,
 			...cat,
 		};
 

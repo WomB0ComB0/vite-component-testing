@@ -73,7 +73,7 @@ export async function googleSearch(q: string) {
 export async function youtubeSearch(q: string, pageToken?: string) {
 	const effect = pipe(
 		get(
-			"/api/youtube/search",
+			"/api/google/youtube/search",
 			{ schema: YoutubeSearchResponseSchema },
 			{ q, pageToken, maxResults: 10 },
 		),
