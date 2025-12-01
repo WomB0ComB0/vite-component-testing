@@ -1,8 +1,8 @@
 // src/lib/client/news.ts
 
+import { get } from "@/effect-schema-fetcher";
 import { FetchHttpClient } from "@effect/platform";
 import { Effect, pipe } from "effect";
-import { get } from "@/effect-fetcher";
 
 // — import your schemas from the same files you showed — //
 import { GNewsResponse as GNewsResponseSchema } from "@/lib/api/gnews";

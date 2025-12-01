@@ -1,7 +1,7 @@
+import { get } from "@/effect-schema-fetcher";
 import { FetchHttpClient } from "@effect/platform";
 import { type } from "arktype";
 import { Effect, pipe } from "effect";
-import { get } from "@/effect-fetcher";
 
 export const RawCse = type({
 	"searchInformation?": {

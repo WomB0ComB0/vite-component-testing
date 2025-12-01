@@ -3,21 +3,21 @@
 import { FetchHttpClient } from "@effect/platform";
 import type { QueryKey } from "@tanstack/react-query";
 import {
-	type UseSuspenseQueryOptions,
 	useQueryClient,
 	useSuspenseQuery,
+	type UseSuspenseQueryOptions,
 } from "@tanstack/react-query";
 import { Effect, pipe, Schema } from "effect";
 import React, { Suspense, useCallback, useMemo } from "react";
 import { ClientError } from "./client-error.tsx";
 import {
+	fetcher,
 	FetcherError,
 	type FetcherOptions,
-	fetcher,
 	get,
 	type QueryParams,
 	ValidationError,
-} from "./effect-fetcher.ts";
+} from "./effect-schema-fetcher.ts";
 import { Loader } from "./loader.tsx";
 import { parseCodePath } from "./util/utils.ts";
 
@@ -151,7 +151,7 @@ export interface DataLoaderPropsWithSchema<
 		| ((
 				data: Schema.Schema.Type<S>,
 				utils: DataLoaderRenderProps<Schema.Schema.Type<S>>,
-		  ) => React.ReactNode);
+		) => React.ReactNode);
 	/** Effect Schema for runtime validation */
 	schema: S;
 	/** Fetcher options with schema */

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
+import { get } from "@/effect-schema-fetcher";
 import { FetchHttpClient } from "@effect/platform";
 import { type } from "arktype";
 import { Effect, pipe } from "effect";
-import { get } from "@/effect-fetcher";
 
 // ArkType definitions for GNews API
 const Article = type({

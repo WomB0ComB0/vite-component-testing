@@ -4,7 +4,7 @@ import React, {
 	useLayoutEffect,
 	useState,
 } from "react";
-import DataLoader, { useDataLoader } from "./effect-data-loader";
+import DataLoader, { useDataLoader } from "./effect-schema-data-loader";
 
 // Use a public, CORS-friendly API (JSONPlaceholder)
 interface Post {
@@ -20,7 +20,7 @@ const Example = React.memo(() => {
 	);
 	const res = useCallback(() => {
 		// console.log(`render`);
-		// console.log(data);
+		console.log(data);
 	}, [data]);
 
 	useEffect(() => {
